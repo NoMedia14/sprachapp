@@ -63,9 +63,12 @@ async function translateWithOpenAi(
 ) {
   const model = Deno.env.get("OPENAI_MODEL") ?? "gpt-5.4-mini";
   const prompt = [
-    "Return only valid JSON.",
+    "You are a precise German and Brazilian Portuguese vocabulary tutor.",
+    "Return only valid JSON. Do not use markdown.",
     "Translate one vocabulary item between German and Brazilian Portuguese.",
-    "Include one natural example sentence in the source language and optionally its translation.",
+    "Prefer the most common everyday meaning. If there are several important meanings, use the best single translation for a vocabulary app.",
+    "Write one natural example sentence in the source language that contains the original term exactly once.",
+    "Write a natural translation of that example sentence in the target language.",
     `Term: ${term}`,
     `Source language: ${sourceLanguage}`,
     `Target language: ${targetLanguage}`,
@@ -85,12 +88,13 @@ async function translateWithOpenAi(
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI request failed: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`OpenAI request failed: ${response.status} ${errorText.slice(0, 220)}`);
   }
 
   const data = await response.json();
   const text = data.output_text ?? extractOutputText(data);
-  const parsed = JSON.parse(text);
+  const parsed = parseJsonObject(text);
 
   return {
     term,
@@ -146,6 +150,18 @@ async function translateWithDeepL(
 function extractOutputText(data: unknown): string {
   const output = (data as { output?: Array<{ content?: Array<{ text?: string }> }> }).output;
   return output?.flatMap((item) => item.content ?? []).map((item) => item.text ?? "").join("") ?? "";
+}
+
+function parseJsonObject(text: string) {
+  const trimmed = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+
+  if (firstBrace === -1 || lastBrace === -1) {
+    throw new Error("OpenAI response did not contain JSON");
+  }
+
+  return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
 }
 
 function json(data: unknown, status = 200) {
