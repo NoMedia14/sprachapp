@@ -8,9 +8,28 @@ interface RequestBody {
   targetLanguage: LanguageCode;
 }
 
+interface UsagePayload {
+  provider: "openai";
+  model: string;
+  term: string;
+  source_language: LanguageCode;
+  target_language: LanguageCode;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cost_usd: number;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const textModelPricesUsdPerMillion: Record<string, { input: number; output: number }> = {
+  "gpt-5.4-mini": { input: 0.75, output: 4.5 },
+  "gpt-5.4-nano": { input: 0.2, output: 1.25 },
+  "gpt-5-nano": { input: 0.05, output: 0.4 },
+  "gpt-4.1-nano": { input: 0.1, output: 0.4 },
 };
 
 const examples: Record<LanguageCode, (term: string) => string> = {
@@ -33,7 +52,7 @@ Deno.serve(async (request) => {
 
     const openAiKey = Deno.env.get("OPENAI_API_KEY");
     if (openAiKey) {
-      return json(await translateWithOpenAi(term, body.sourceLanguage, body.targetLanguage, openAiKey));
+      return json(await translateWithOpenAi(request, term, body.sourceLanguage, body.targetLanguage, openAiKey));
     }
 
     const deeplKey = Deno.env.get("DEEPL_API_KEY");
@@ -56,6 +75,7 @@ Deno.serve(async (request) => {
 });
 
 async function translateWithOpenAi(
+  request: Request,
   term: string,
   sourceLanguage: LanguageCode,
   targetLanguage: LanguageCode,
@@ -95,6 +115,22 @@ async function translateWithOpenAi(
   const data = await response.json();
   const text = data.output_text ?? extractOutputText(data);
   const parsed = parseJsonObject(text);
+  const inputTokens = Number(data.usage?.input_tokens ?? data.usage?.prompt_tokens ?? 0);
+  const outputTokens = Number(data.usage?.output_tokens ?? data.usage?.completion_tokens ?? 0);
+  const totalTokens = Number(data.usage?.total_tokens ?? inputTokens + outputTokens);
+  const estimatedCostUsd = estimateTextCostUsd(model, inputTokens, outputTokens);
+
+  await recordTranslationUsage(request, {
+    provider: "openai",
+    model,
+    term,
+    source_language: sourceLanguage,
+    target_language: targetLanguage,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: totalTokens,
+    cost_usd: estimatedCostUsd,
+  });
 
   return {
     term,
@@ -104,6 +140,13 @@ async function translateWithOpenAi(
     exampleSource: String(parsed.exampleSource),
     exampleTarget: parsed.exampleTarget ? String(parsed.exampleTarget) : undefined,
     provider: "openai",
+    usage: {
+      model,
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      estimatedCostUsd,
+    },
   };
 }
 
@@ -162,6 +205,41 @@ function parseJsonObject(text: string) {
   }
 
   return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+}
+
+function estimateTextCostUsd(model: string, inputTokens: number, outputTokens: number) {
+  const prices = textModelPricesUsdPerMillion[model] ?? textModelPricesUsdPerMillion["gpt-5.4-mini"];
+
+  return (inputTokens / 1_000_000) * prices.input + (outputTokens / 1_000_000) * prices.output;
+}
+
+async function recordTranslationUsage(request: Request, payload: UsagePayload) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const authorization = request.headers.get("Authorization");
+
+  if (!supabaseUrl || !supabaseAnonKey || !authorization) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/translation_usage`, {
+      method: "POST",
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: authorization,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.warn(`Usage logging failed: ${response.status}`);
+    }
+  } catch (error) {
+    console.warn("Usage logging failed", error);
+  }
 }
 
 function json(data: unknown, status = 200) {

@@ -67,7 +67,6 @@ button {
   border-top: 1px solid rgb(255 255 255 / 14%);
   display: grid;
   gap: 10px;
-  margin-top: auto;
   padding-top: 18px;
 }
 
@@ -87,6 +86,76 @@ button {
   gap: 8px;
   justify-content: center;
   min-height: 40px;
+}
+
+.cost-widget {
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 8px;
+  color: #f7f4ed;
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding: 12px;
+}
+
+.cost-widget.collapsed {
+  align-items: center;
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  width: 100%;
+}
+
+.cost-widget-top {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.cost-widget-top span {
+  color: #c9d3cf;
+  display: block;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.cost-widget-top strong {
+  font-size: 14px;
+}
+
+.cost-widget-top button {
+  align-items: center;
+  background: rgb(255 255 255 / 8%);
+  border: 0;
+  border-radius: 8px;
+  color: #f7f4ed;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.cost-amount {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.cost-amount span {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.cost-widget p {
+  color: #c9d3cf;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
 }
 
 nav {

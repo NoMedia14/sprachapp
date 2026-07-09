@@ -10,6 +10,13 @@ export interface TranslationResult {
   exampleSource: string;
   exampleTarget?: string;
   provider: "local" | "public" | "deepl" | "openai";
+  usage?: {
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+  };
 }
 
 export interface VocabularyEntry extends TranslationResult {

@@ -1,13 +1,15 @@
 import type { User } from "@supabase/supabase-js";
 import { BookMarked, Library, LogOut, RotateCcw, Settings, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthPanel } from "./components/AuthPanel";
+import { CostWidget } from "./components/CostWidget";
 import { ReviewSession } from "./components/ReviewSession";
 import { SavedWords } from "./components/SavedWords";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WordLookup } from "./components/WordLookup";
 import { supabase } from "./lib/supabase";
 import { createInitialReviewState, defaultReviewSettings, isDue } from "./services/spacedRepetition";
+import { emptyUsageSummary, loadMonthlyUsageSummary, type MonthlyUsageSummary } from "./services/usageRepository";
 import {
   deleteVocabularyEntry,
   loadVocabulary,
@@ -19,6 +21,7 @@ import type { ReviewSettings, TranslationResult, VocabularyEntry } from "./types
 type View = "lookup" | "review" | "words" | "settings";
 
 const settingsStorageKey = "sprachapp:review-settings";
+const costWidgetStorageKey = "sprachapp:cost-widget-hidden";
 
 const navItems: Array<{ view: View; label: string; icon: typeof Sparkles }> = [
   { view: "lookup", label: "Nachschlagen", icon: Sparkles },
@@ -32,6 +35,10 @@ export default function App() {
   const [entries, setEntries] = useState<VocabularyEntry[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(!supabase);
+  const [usageSummary, setUsageSummary] = useState<MonthlyUsageSummary>(emptyUsageSummary);
+  const [costWidgetHidden, setCostWidgetHidden] = useState(() => {
+    return localStorage.getItem(costWidgetStorageKey) === "true";
+  });
   const [settings, setSettings] = useState<ReviewSettings>(() => {
     const raw = localStorage.getItem(settingsStorageKey);
     return raw ? { ...defaultReviewSettings, ...JSON.parse(raw) } : defaultReviewSettings;
@@ -42,6 +49,10 @@ export default function App() {
   const refreshVocabulary = async () => {
     setEntries(await loadVocabulary());
   };
+
+  const refreshUsage = useCallback(async () => {
+    setUsageSummary(await loadMonthlyUsageSummary());
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -54,6 +65,7 @@ export default function App() {
       setAuthReady(true);
       if (data.session?.user) {
         refreshVocabulary();
+        refreshUsage();
       }
     });
 
@@ -63,8 +75,10 @@ export default function App() {
       setUser(session?.user ?? null);
       if (session?.user) {
         refreshVocabulary();
+        refreshUsage();
       } else {
         setEntries([]);
+        setUsageSummary(emptyUsageSummary);
       }
     });
 
@@ -74,6 +88,14 @@ export default function App() {
   const saveSettings = (nextSettings: ReviewSettings) => {
     setSettings(nextSettings);
     localStorage.setItem(settingsStorageKey, JSON.stringify(nextSettings));
+  };
+
+  const toggleCostWidget = () => {
+    setCostWidgetHidden((current) => {
+      const next = !current;
+      localStorage.setItem(costWidgetStorageKey, String(next));
+      return next;
+    });
   };
 
   const saveTranslation = async (result: TranslationResult) => {
@@ -92,6 +114,7 @@ export default function App() {
 
     await saveVocabularyEntry(entry);
     setEntries((current) => [entry, ...current.filter((candidate) => candidate.id !== entry.id)]);
+    await refreshUsage();
   };
 
   const reviewEntry = async (entry: VocabularyEntry) => {
@@ -151,13 +174,16 @@ export default function App() {
         </nav>
 
         {user && (
-          <div className="account-box">
-            <span>{user.email}</span>
-            <button type="button" onClick={signOut}>
-              <LogOut size={16} />
-              Abmelden
-            </button>
-          </div>
+          <>
+            <CostWidget hidden={costWidgetHidden} summary={usageSummary} onToggle={toggleCostWidget} />
+            <div className="account-box">
+              <span>{user.email}</span>
+              <button type="button" onClick={signOut}>
+                <LogOut size={16} />
+                Abmelden
+              </button>
+            </div>
+          </>
         )}
       </aside>
 
@@ -173,7 +199,7 @@ export default function App() {
           </div>
         </header>
 
-        {view === "lookup" && <WordLookup onSave={saveTranslation} />}
+        {view === "lookup" && <WordLookup onSave={saveTranslation} onTranslated={refreshUsage} />}
         {view === "review" && <ReviewSession entries={entries} settings={settings} onReview={reviewEntry} />}
         {view === "words" && <SavedWords entries={entries} onDelete={deleteEntry} />}
         {view === "settings" && <SettingsPanel settings={settings} onChange={saveSettings} />}

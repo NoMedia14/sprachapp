@@ -6,6 +6,7 @@ import { HighlightedExample } from "./HighlightedExample";
 
 interface WordLookupProps {
   onSave: (result: TranslationResult) => Promise<void>;
+  onTranslated?: () => void;
 }
 
 const languageOptions: Array<{ value: LanguageSelection; label: string }> = [
@@ -14,7 +15,7 @@ const languageOptions: Array<{ value: LanguageSelection; label: string }> = [
   { value: "pt-BR", label: "Português" },
 ];
 
-export function WordLookup({ onSave }: WordLookupProps) {
+export function WordLookup({ onSave, onTranslated }: WordLookupProps) {
   const [term, setTerm] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState<LanguageSelection>("auto");
   const [result, setResult] = useState<TranslationResult | null>(null);
@@ -45,6 +46,7 @@ export function WordLookup({ onSave }: WordLookupProps) {
         if (active) {
           setResult(translation);
           setLookupStatus("idle");
+          onTranslated?.();
         }
       } catch {
         if (active) {
@@ -58,7 +60,7 @@ export function WordLookup({ onSave }: WordLookupProps) {
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [term, sourceLanguage]);
+  }, [term, sourceLanguage, onTranslated]);
 
   useEffect(() => {
     return () => {
