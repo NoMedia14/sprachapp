@@ -72,11 +72,18 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
 
   const updateFilter = <Key extends keyof VocabularyFilters>(key: Key, value: VocabularyFilters[Key]) => {
     setRevealed(false);
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-      subcategory: key === "category" ? "all" : current.subcategory,
-    }));
+    setFilters((current) => {
+      const next = {
+        ...current,
+        [key]: value,
+      };
+
+      if (key === "category") {
+        next.subcategory = "all";
+      }
+
+      return next;
+    });
   };
 
   return (

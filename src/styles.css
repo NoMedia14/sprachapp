@@ -19,7 +19,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -674,7 +675,7 @@ mark {
 .word-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin: 0 auto;
   max-width: 1120px;
 }
@@ -698,11 +699,22 @@ mark {
 
 .word-list-row.compact {
   align-items: center;
-  box-shadow: none;
-  gap: 8px;
+  background: #ffffff;
+  border-color: #dfe5dc;
+  border-left: 4px solid #8fb7a2;
+  box-shadow: 0 8px 22px rgb(38 45 42 / 4%);
+  gap: 10px;
   grid-template-columns: minmax(110px, 0.7fr) minmax(120px, 0.8fr) minmax(130px, 0.8fr) minmax(220px, 1.5fr) 82px 30px;
   min-height: 52px;
-  padding: 7px 10px;
+  padding: 8px 10px 8px 12px;
+}
+
+.word-list-row.compact:nth-child(even) {
+  background: #fbfcfa;
+}
+
+.word-list-row.compact:hover {
+  border-color: #bfd2c5;
 }
 
 .word-cell {
@@ -710,10 +722,11 @@ mark {
   display: grid;
   gap: 2px;
   min-width: 0;
+  padding: 2px 4px;
 }
 
 .word-cell span {
-  color: #68746f;
+  color: #74807b;
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
@@ -725,10 +738,41 @@ mark {
   overflow-wrap: anywhere;
 }
 
+.german-word-cell strong {
+  color: #202124;
+}
+
+.other-word-cell strong {
+  font-weight: 900;
+}
+
+.other-word-cell.portuguese strong {
+  color: #0f7a5f;
+}
+
+.other-word-cell.english strong {
+  color: #245b9a;
+}
+
+.category-cell {
+  background: #f4f7f3;
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.category-cell strong {
+  color: #31413b;
+}
+
 .category-cell small {
-  color: #68746f;
+  color: #5d6d67;
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+.word-example-cell {
+  border-left: 1px solid #e6ece7;
+  padding-left: 10px;
 }
 
 .word-example-cell p {
@@ -740,14 +784,27 @@ mark {
 }
 
 .word-due-cell {
+  background: #f7f5ef;
+  border-radius: 6px;
+  padding: 5px 7px;
   text-align: right;
+}
+
+.word-due-cell strong {
+  font-size: 13px;
 }
 
 .delete-word-button {
   align-self: center;
+  background: #ffffff;
   height: 30px;
   justify-self: center;
   width: 30px;
+}
+
+.delete-word-button:hover {
+  border-color: #d9573f;
+  color: #b94734;
 }
 
 .review-controls {
@@ -1007,7 +1064,7 @@ mark {
   }
 
   .word-list-row.compact {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(70px, 0.75fr) minmax(88px, 0.8fr) minmax(92px, 0.85fr) minmax(130px, 1.3fr) 70px 30px;
   }
 
   .word-due-cell {
@@ -1042,5 +1099,16 @@ mark {
   .result-heading.compact {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .word-list-row.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .word-example-cell {
+    border-left: 0;
+    padding-left: 4px;
   }
 }

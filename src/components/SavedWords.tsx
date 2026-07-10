@@ -62,11 +62,18 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
   }
 
   const updateFilter = <Key extends keyof VocabularyFilters>(key: Key, value: VocabularyFilters[Key]) => {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-      subcategory: key === "category" ? "all" : current.subcategory,
-    }));
+    setFilters((current) => {
+      const next = {
+        ...current,
+        [key]: value,
+      };
+
+      if (key === "category") {
+        next.subcategory = "all";
+      }
+
+      return next;
+    });
   };
 
   return (
@@ -122,12 +129,12 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
 
           return (
             <article className="word-list-row compact" key={entry.id}>
-              <div className="word-cell">
+              <div className="word-cell german-word-cell">
                 <span>Deutsch</span>
                 <strong>{germanWord}</strong>
               </div>
 
-              <div className="word-cell">
+              <div className={`word-cell other-word-cell ${getLanguageTone(otherLanguage)}`}>
                 <span>{languageLabel[otherLanguage]}</span>
                 <strong>{otherWord}</strong>
               </div>
@@ -200,4 +207,16 @@ function getOtherLanguage(entry: VocabularyEntry): LanguageCode {
   }
 
   return entry.sourceLanguage;
+}
+
+function getLanguageTone(language: LanguageCode) {
+  if (language === "pt-BR") {
+    return "portuguese";
+  }
+
+  if (language === "en") {
+    return "english";
+  }
+
+  return "german";
 }
