@@ -172,9 +172,9 @@ export function ProgressDashboard({ entries, settings, onAddReference }: Progres
 
       <div className="progress-metrics">
         <Metric label="Referenzwortschatz" value={summary.referenceCount} />
-        <Metric label="Gespeicherte Referenzlemmata" value={summary.savedReferenceLemmas} />
-        <Metric label="Beherrschte Referenzlemmata" value={summary.masteredReferenceLemmas} />
-        <Metric label="Eindeutige Lemmata" value={summary.uniqueSavedLemmas} />
+        <Metric label="Referenzwörter von dir gespeichert" value={summary.savedReferenceLemmas} />
+        <Metric label="Referenzwörter von dir beherrscht" value={summary.masteredReferenceLemmas} />
+        <Metric label="Eigene eindeutige Wörter" value={summary.uniqueSavedLemmas} />
         <Metric label="Gespeicherte Bedeutungen" value={summary.savedMeanings} />
         <Metric label="Beherrschte Bedeutungen" value={summary.masteredMeanings} />
         <Metric label="Gespeicherte Wendungen" value={summary.savedPhrases} />
