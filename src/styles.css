@@ -328,6 +328,30 @@ nav button:hover {
   padding: 8px 12px;
 }
 
+.content-review .content-header {
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.content-review .content-header .eyebrow {
+  display: none;
+}
+
+.content-review .content-header h1 {
+  font-size: 32px;
+  margin: 0;
+}
+
+.content-review .stats-strip {
+  gap: 6px;
+}
+
+.content-review .stats-strip span {
+  font-size: 11px;
+  padding: 6px 9px;
+}
+
 .lookup-card {
   background: #ffffff;
   border: 1px solid #e3ded6;
