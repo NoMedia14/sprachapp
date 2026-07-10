@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { formatCategoryLabel } from "../lib/categoryLabels";
 import type { LanguageCode, VocabularyEntry, VocabularyFilters } from "../types";
 
 interface SavedWordsProps {
@@ -96,7 +97,7 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
             <option value="all">Alle Kategorien</option>
             {categories.map((category) => (
               <option key={category} value={category}>
-                {category}
+                {formatCategoryLabel(category)}
               </option>
             ))}
           </select>
@@ -108,7 +109,7 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
             <option value="all">Alle Unterkategorien</option>
             {subcategories.map((subcategory) => (
               <option key={subcategory} value={subcategory}>
-                {subcategory}
+                {formatCategoryLabel(subcategory)}
               </option>
             ))}
           </select>
@@ -141,8 +142,8 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
 
               <div className="word-cell category-cell">
                 <span>Kategorie</span>
-                <strong>{entry.category}</strong>
-                <small>{entry.subcategory}</small>
+                <strong>{formatCategoryLabel(entry.category)}</strong>
+                <small>{formatCategoryLabel(entry.subcategory)}</small>
               </div>
 
               <div className="word-cell word-example-cell">

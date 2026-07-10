@@ -1,5 +1,6 @@
 import { ArrowRight, Check, Eye, RotateCcw, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
+import { formatCategoryLabel } from "../lib/categoryLabels";
 import { applyReviewGrade, isDue } from "../services/spacedRepetition";
 import type { LanguageCode, ReviewGrade, ReviewSettings, VocabularyEntry, VocabularyFilters } from "../types";
 import { HighlightedExample } from "./HighlightedExample";
@@ -116,7 +117,7 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
               <option value="all">Alle Kategorien</option>
               {categories.map((category) => (
                 <option key={category} value={category}>
-                  {category}
+                  {formatCategoryLabel(category)}
                 </option>
               ))}
             </select>
@@ -128,7 +129,7 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
               <option value="all">Alle Unterkategorien</option>
               {subcategories.map((subcategory) => (
                 <option key={subcategory} value={subcategory}>
-                  {subcategory}
+                  {formatCategoryLabel(subcategory)}
                 </option>
               ))}
             </select>
@@ -146,7 +147,7 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
           <div className="review-topline">
             <span>{reviewEntries.length} Karten</span>
             <span>
-              {activeEntry.category} · {activeEntry.subcategory}
+              {formatCategoryLabel(activeEntry.category)} · {formatCategoryLabel(activeEntry.subcategory)}
             </span>
             <span>Wiederholungen: {activeEntry.repetitions}</span>
           </div>

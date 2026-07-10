@@ -1516,8 +1516,26 @@ mark {
   }
 
   .content-header {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .content-header h1 {
+    font-size: 28px;
+  }
+
+  .content-header .eyebrow {
+    display: none;
+  }
+
+  .stats-strip {
+    gap: 4px;
+  }
+
+  .stats-strip span {
+    font-size: 11px;
+    padding: 6px 8px;
   }
 
   .lookup-layout {
@@ -1580,6 +1598,19 @@ mark {
   .review-panel[data-review-mode="due"] .filter-bar.compact label:not(:first-child) {
     display: none;
   }
+
+  .review-controls {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .review-mode-toggle {
+    max-width: 220px;
+  }
+
+  .review-mode-toggle button {
+    min-height: 36px;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1594,6 +1625,10 @@ mark {
   .reference-detail,
   .progress-hero {
     padding: 18px;
+  }
+
+  .review-panel {
+    padding: 14px;
   }
 
   .result-heading.compact {
