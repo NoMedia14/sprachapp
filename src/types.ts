@@ -1,4 +1,4 @@
-export type LanguageCode = "de" | "pt-BR";
+export type LanguageCode = "de" | "pt-BR" | "en";
 
 export type ReviewGrade = "again" | "good" | "easy";
 

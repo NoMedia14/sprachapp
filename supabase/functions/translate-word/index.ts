@@ -1,6 +1,6 @@
 /// <reference types="jsr:@supabase/functions-js/edge-runtime.d.ts" />
 
-type LanguageCode = "de" | "pt-BR";
+type LanguageCode = "de" | "pt-BR" | "en";
 
 interface RequestBody {
   term: string;
@@ -35,7 +35,16 @@ const textModelPricesUsdPerMillion: Record<string, { input: number; output: numb
 const examples: Record<LanguageCode, (term: string) => string> = {
   de: (term) => `Ich benutze das Wort ${term} heute in einem einfachen Satz.`,
   "pt-BR": (term) => `Eu uso a palavra ${term} hoje em uma frase simples.`,
+  en: (term) => `I use the word ${term} in a simple sentence today.`,
 };
+
+const languageNames: Record<LanguageCode, string> = {
+  de: "German",
+  "pt-BR": "Brazilian Portuguese",
+  en: "English",
+};
+
+const supportedLanguages = new Set(["de", "pt-BR", "en"]);
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -48,6 +57,14 @@ Deno.serve(async (request) => {
 
     if (!term || !body.sourceLanguage || !body.targetLanguage) {
       return json({ error: "term, sourceLanguage and targetLanguage are required" }, 400);
+    }
+
+    if (
+      !supportedLanguages.has(body.sourceLanguage) ||
+      !supportedLanguages.has(body.targetLanguage) ||
+      body.sourceLanguage === body.targetLanguage
+    ) {
+      return json({ error: "sourceLanguage and targetLanguage must be different supported languages" }, 400);
     }
 
     const openAiKey = Deno.env.get("OPENAI_API_KEY");
@@ -83,15 +100,17 @@ async function translateWithOpenAi(
 ) {
   const model = Deno.env.get("OPENAI_MODEL") ?? "gpt-5.4-mini";
   const prompt = [
-    "You are a precise German and Brazilian Portuguese vocabulary tutor.",
+    "You are a precise vocabulary tutor for German, Brazilian Portuguese, and English.",
     "Return only valid JSON. Do not use markdown.",
-    "Translate one vocabulary item between German and Brazilian Portuguese.",
+    "Translate exactly one vocabulary item from the source language into the target language.",
+    "Never return the original source word as the translation unless it is truly identical in the target language.",
     "Prefer the most common everyday meaning. If there are several important meanings, use the best single translation for a vocabulary app.",
     "Write one natural example sentence in the source language that contains the original term exactly once.",
     "Write a natural translation of that example sentence in the target language.",
+    "For example, German 'Tür' translated to Brazilian Portuguese is 'porta' and to English is 'door'.",
     `Term: ${term}`,
-    `Source language: ${sourceLanguage}`,
-    `Target language: ${targetLanguage}`,
+    `Source language: ${languageNames[sourceLanguage]} (${sourceLanguage})`,
+    `Target language: ${languageNames[targetLanguage]} (${targetLanguage})`,
     'Schema: {"translation":"...","exampleSource":"...","exampleTarget":"..."}',
   ].join("\n");
 
@@ -159,8 +178,8 @@ async function translateWithDeepL(
   const apiUrl = Deno.env.get("DEEPL_API_URL") ?? "https://api-free.deepl.com/v2/translate";
   const params = new URLSearchParams({
     text: term,
-    source_lang: sourceLanguage === "de" ? "DE" : "PT",
-    target_lang: targetLanguage === "de" ? "DE" : "PT-BR",
+    source_lang: toDeepLLanguage(sourceLanguage),
+    target_lang: toDeepLLanguage(targetLanguage),
   });
 
   const response = await fetch(apiUrl, {
@@ -188,6 +207,18 @@ async function translateWithDeepL(
     exampleTarget: examples[targetLanguage](translation),
     provider: "deepl",
   };
+}
+
+function toDeepLLanguage(language: LanguageCode) {
+  if (language === "de") {
+    return "DE";
+  }
+
+  if (language === "en") {
+    return "EN";
+  }
+
+  return "PT-BR";
 }
 
 function extractOutputText(data: unknown): string {

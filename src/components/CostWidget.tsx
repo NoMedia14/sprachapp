@@ -42,7 +42,7 @@ export function CostWidget({ hidden, summary, onToggle }: CostWidgetProps) {
       </div>
 
       <p>
-        {summary.translations} Übersetzungen · {summary.inputTokens + summary.outputTokens} Tokens
+        {summary.translations} Übersetzungen - {summary.inputTokens + summary.outputTokens} Tokens
       </p>
     </section>
   );

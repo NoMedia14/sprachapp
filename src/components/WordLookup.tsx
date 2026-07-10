@@ -1,7 +1,7 @@
 import { BookOpen, Check, Loader2, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { type LanguageSelection, translateWord } from "../services/translationService";
-import type { TranslationResult } from "../types";
+import { translateWord } from "../services/translationService";
+import type { LanguageCode, TranslationResult } from "../types";
 import { HighlightedExample } from "./HighlightedExample";
 
 interface WordLookupProps {
@@ -9,15 +9,16 @@ interface WordLookupProps {
   onTranslated?: () => void;
 }
 
-const languageOptions: Array<{ value: LanguageSelection; label: string }> = [
-  { value: "auto", label: "Auto" },
-  { value: "de", label: "Deutsch" },
-  { value: "pt-BR", label: "Português" },
+const languageOptions: Array<{ value: LanguageCode; label: string; tone: string }> = [
+  { value: "de", label: "Deutsch", tone: "german" },
+  { value: "pt-BR", label: "Portugiesisch", tone: "portuguese" },
+  { value: "en", label: "Englisch", tone: "english" },
 ];
 
 export function WordLookup({ onSave, onTranslated }: WordLookupProps) {
   const [term, setTerm] = useState("");
-  const [sourceLanguage, setSourceLanguage] = useState<LanguageSelection>("auto");
+  const [sourceLanguage, setSourceLanguage] = useState<LanguageCode>("de");
+  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>("pt-BR");
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading">("idle");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -41,7 +42,7 @@ export function WordLookup({ onSave, onTranslated }: WordLookupProps) {
 
     const timeoutId = window.setTimeout(async () => {
       try {
-        const translation = await translateWord(cleanTerm, sourceLanguage);
+        const translation = await translateWord(cleanTerm, sourceLanguage, targetLanguage);
 
         if (active) {
           setResult(translation);
@@ -60,7 +61,7 @@ export function WordLookup({ onSave, onTranslated }: WordLookupProps) {
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [term, sourceLanguage, onTranslated]);
+  }, [term, sourceLanguage, targetLanguage, onTranslated]);
 
   useEffect(() => {
     return () => {
@@ -69,6 +70,20 @@ export function WordLookup({ onSave, onTranslated }: WordLookupProps) {
       }
     };
   }, []);
+
+  const selectSourceLanguage = (language: LanguageCode) => {
+    setSourceLanguage(language);
+
+    if (language === targetLanguage) {
+      setTargetLanguage(language === "de" ? "pt-BR" : "de");
+    }
+  };
+
+  const selectTargetLanguage = (language: LanguageCode) => {
+    if (language !== sourceLanguage) {
+      setTargetLanguage(language);
+    }
+  };
 
   const save = async () => {
     if (!result || saveStatus === "saving") {
@@ -94,21 +109,41 @@ export function WordLookup({ onSave, onTranslated }: WordLookupProps) {
           id="term"
           value={term}
           onChange={(event) => setTerm(event.target.value)}
-          placeholder="z. B. janela, arbeiten, saudade"
+          placeholder="z. B. Tür, janela, door"
           autoComplete="off"
         />
 
-        <div className="language-toggle" aria-label="Ausgangssprache">
-          {languageOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={sourceLanguage === option.value ? "active" : ""}
-              onClick={() => setSourceLanguage(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="language-picker">
+          <span>Von</span>
+          <div className="language-toggle" aria-label="Ausgangssprache">
+            {languageOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`${option.tone} ${sourceLanguage === option.value ? "active" : ""}`}
+                onClick={() => selectSourceLanguage(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="language-picker">
+          <span>Nach</span>
+          <div className="language-toggle" aria-label="Zielsprache">
+            {languageOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                disabled={sourceLanguage === option.value}
+                className={`${option.tone} ${targetLanguage === option.value ? "active" : ""}`}
+                onClick={() => selectTargetLanguage(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

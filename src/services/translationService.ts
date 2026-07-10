@@ -1,30 +1,34 @@
 import { supabase } from "../lib/supabase";
 import type { LanguageCode, TranslationResult } from "../types";
 
-export type LanguageSelection = LanguageCode | "auto";
-
 const localDictionary: Record<string, Partial<Record<LanguageCode, string>>> = {
   haus: { "pt-BR": "casa" },
-  wasser: { "pt-BR": "agua" },
-  arbeiten: { "pt-BR": "trabalhar" },
+  tür: { "pt-BR": "porta", en: "door" },
+  tuer: { "pt-BR": "porta", en: "door" },
+  wasser: { "pt-BR": "agua", en: "water" },
+  arbeiten: { "pt-BR": "trabalhar", en: "to work" },
   saudade: { de: "Sehnsucht" },
   obrigado: { de: "danke" },
   casa: { de: "Haus" },
   aprender: { de: "lernen" },
+  door: { de: "Tür", "pt-BR": "porta" },
+  water: { de: "Wasser", "pt-BR": "agua" },
 };
 
 const exampleTemplates: Record<LanguageCode, (term: string) => string> = {
   de: (term) => `Ich benutze das Wort ${term} heute in einem einfachen Satz.`,
   "pt-BR": (term) => `Eu uso a palavra ${term} hoje em uma frase simples.`,
+  en: (term) => `I use the word ${term} in a simple sentence today.`,
 };
 
-export function getTargetLanguage(sourceLanguage: LanguageCode): LanguageCode {
-  return sourceLanguage === "de" ? "pt-BR" : "de";
-}
-
-export async function translateWord(term: string, selectedLanguage: LanguageSelection): Promise<TranslationResult> {
-  const sourceLanguage = resolveSourceLanguage(term, selectedLanguage);
-  const targetLanguage = getTargetLanguage(sourceLanguage);
+export async function translateWord(
+  term: string,
+  sourceLanguage: LanguageCode,
+  targetLanguage: LanguageCode,
+): Promise<TranslationResult> {
+  if (sourceLanguage === targetLanguage) {
+    throw new Error("Source and target language must be different");
+  }
 
   if (supabase) {
     const { data, error } = await supabase.functions.invoke<TranslationResult>("translate-word", {
@@ -41,25 +45,6 @@ export async function translateWord(term: string, selectedLanguage: LanguageSele
   } catch {
     return createLocalResult(term, sourceLanguage, targetLanguage);
   }
-}
-
-function resolveSourceLanguage(term: string, selectedLanguage: LanguageSelection): LanguageCode {
-  if (selectedLanguage !== "auto") {
-    return selectedLanguage;
-  }
-
-  const normalized = term.trim().toLowerCase();
-  const dictionaryHit = localDictionary[normalized];
-
-  if (dictionaryHit?.de && !dictionaryHit["pt-BR"]) {
-    return "pt-BR";
-  }
-
-  if (dictionaryHit?.["pt-BR"] && !dictionaryHit.de) {
-    return "de";
-  }
-
-  return /[\u00e0-\u00ff]|\b(o|a|os|as|um|uma|eu|voce|obrigad[oa])\b/i.test(term) ? "pt-BR" : "de";
 }
 
 async function createPublicTranslationResult(
@@ -87,7 +72,7 @@ async function createPublicTranslationResult(
 async function translateWithPublicApi(text: string, sourceLanguage: LanguageCode, targetLanguage: LanguageCode) {
   const params = new URLSearchParams({
     q: text,
-    langpair: `${sourceLanguage}|${targetLanguage}`,
+    langpair: `${toPublicApiLanguage(sourceLanguage)}|${toPublicApiLanguage(targetLanguage)}`,
   });
 
   const response = await fetch(`https://api.mymemory.translated.net/get?${params.toString()}`);
@@ -104,6 +89,10 @@ async function translateWithPublicApi(text: string, sourceLanguage: LanguageCode
   }
 
   return translatedText;
+}
+
+function toPublicApiLanguage(language: LanguageCode) {
+  return language === "pt-BR" ? "pt" : language;
 }
 
 function createLocalResult(

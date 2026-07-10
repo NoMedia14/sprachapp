@@ -1,13 +1,13 @@
 import { supabase } from "../lib/supabase";
-import type { VocabularyEntry } from "../types";
+import type { LanguageCode, VocabularyEntry } from "../types";
 
 const storageKey = "sprachapp:vocabulary";
 
 type DbEntry = {
   id: string;
   term: string;
-  source_language: "de" | "pt-BR";
-  target_language: "de" | "pt-BR";
+  source_language: LanguageCode;
+  target_language: LanguageCode;
   translation: string;
   example_source: string;
   example_target: string | null;

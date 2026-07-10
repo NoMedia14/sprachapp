@@ -167,7 +167,7 @@ export default function App() {
               onClick={() => setView(itemView)}
             >
               <Icon size={18} />
-              {label}
+              <span className="nav-label">{label}</span>
               {itemView === "review" && dueCount > 0 && <span className="badge">{dueCount}</span>}
             </button>
           ))}
@@ -180,7 +180,7 @@ export default function App() {
               <span>{user.email}</span>
               <button type="button" onClick={signOut}>
                 <LogOut size={16} />
-                Abmelden
+                <span>Abmelden</span>
               </button>
             </div>
           </>
