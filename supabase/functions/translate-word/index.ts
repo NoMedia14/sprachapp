@@ -84,6 +84,8 @@ Deno.serve(async (request) => {
       translation: `[${body.targetLanguage}] ${term}`,
       exampleSource: examples[body.sourceLanguage](term),
       exampleTarget: examples[body.targetLanguage](`[${body.targetLanguage}] ${term}`),
+      category: "Nomen",
+      subcategory: "Allgemein",
       provider: "local",
     });
   } catch (error) {
@@ -107,11 +109,14 @@ async function translateWithOpenAi(
     "Prefer the most common everyday meaning. If there are several important meanings, use the best single translation for a vocabulary app.",
     "Write one natural example sentence in the source language that contains the original term exactly once.",
     "Write a natural translation of that example sentence in the target language.",
+    "Classify the vocabulary item into a broad German learning category like Nomen, Verben, Adjektive, Adverbien, Praepositionen, Ausdruecke, Zahlen, Sonstiges.",
+    "Also add a useful German subcategory like Obst, Gemuese, Haushalt, Moebel, Essen, Arbeit, Reise, Koerper, Familie, Zeit, Farben, Gefuehle, Allgemein.",
+    "Use concise German category labels. Do not invent overly specific subcategories for a single word.",
     "For example, German 'Tür' translated to Brazilian Portuguese is 'porta' and to English is 'door'.",
     `Term: ${term}`,
     `Source language: ${languageNames[sourceLanguage]} (${sourceLanguage})`,
     `Target language: ${languageNames[targetLanguage]} (${targetLanguage})`,
-    'Schema: {"translation":"...","exampleSource":"...","exampleTarget":"..."}',
+    'Schema: {"translation":"...","exampleSource":"...","exampleTarget":"...","category":"Nomen","subcategory":"Haushalt"}',
   ].join("\n");
 
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -158,6 +163,8 @@ async function translateWithOpenAi(
     translation: String(parsed.translation),
     exampleSource: String(parsed.exampleSource),
     exampleTarget: parsed.exampleTarget ? String(parsed.exampleTarget) : undefined,
+    category: normalizeLabel(parsed.category, "Nomen"),
+    subcategory: normalizeLabel(parsed.subcategory, "Allgemein"),
     provider: "openai",
     usage: {
       model,
@@ -205,6 +212,8 @@ async function translateWithDeepL(
     translation,
     exampleSource: examples[sourceLanguage](term),
     exampleTarget: examples[targetLanguage](translation),
+    category: "Nomen",
+    subcategory: "Allgemein",
     provider: "deepl",
   };
 }
@@ -236,6 +245,11 @@ function parseJsonObject(text: string) {
   }
 
   return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+}
+
+function normalizeLabel(value: unknown, fallback: string) {
+  const text = String(value ?? "").trim();
+  return text ? text.slice(0, 40) : fallback;
 }
 
 function estimateTextCostUsd(model: string, inputTokens: number, outputTokens: number) {

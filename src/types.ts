@@ -9,6 +9,8 @@ export interface TranslationResult {
   translation: string;
   exampleSource: string;
   exampleTarget?: string;
+  category: string;
+  subcategory: string;
   provider: "local" | "public" | "deepl" | "openai";
   usage?: {
     model: string;
@@ -35,4 +37,10 @@ export interface ReviewSettings {
   againDelayMinutes: number;
   reviewIntervalsDays: number[];
   easySkipSteps: number;
+}
+
+export interface VocabularyFilters {
+  language: LanguageCode | "all";
+  category: string;
+  subcategory: string;
 }

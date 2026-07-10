@@ -1,7 +1,7 @@
 import { Check, Eye, RotateCcw, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { applyReviewGrade, isDue } from "../services/spacedRepetition";
-import type { ReviewGrade, ReviewSettings, VocabularyEntry } from "../types";
+import type { LanguageCode, ReviewGrade, ReviewSettings, VocabularyEntry, VocabularyFilters } from "../types";
 import { HighlightedExample } from "./HighlightedExample";
 
 interface ReviewSessionProps {
@@ -10,19 +10,56 @@ interface ReviewSessionProps {
   onReview: (entry: VocabularyEntry) => Promise<void>;
 }
 
+type ReviewMode = "due" | "targeted";
+
+const defaultFilters: VocabularyFilters = {
+  language: "all",
+  category: "all",
+  subcategory: "all",
+};
+
 const gradeOptions: Array<{ grade: ReviewGrade; label: string; icon: typeof RotateCcw }> = [
   { grade: "again", label: "Nochmal", icon: RotateCcw },
   { grade: "good", label: "Gut", icon: Check },
   { grade: "easy", label: "Leicht", icon: Zap },
 ];
 
+const languageLabel: Record<LanguageCode, string> = {
+  de: "Deutsch",
+  "pt-BR": "Portugiesisch",
+  en: "Englisch",
+};
+
+const languageFilterOptions: Array<{ value: VocabularyFilters["language"]; label: string }> = [
+  { value: "all", label: "Alle Sprachen" },
+  { value: "pt-BR", label: "Portugiesisch" },
+  { value: "en", label: "Englisch" },
+];
+
 export function ReviewSession({ entries, settings, onReview }: ReviewSessionProps) {
-  const dueEntries = useMemo(
-    () => entries.filter((entry) => isDue(entry)).sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime()),
-    [entries],
-  );
   const [revealed, setRevealed] = useState(false);
-  const activeEntry = dueEntries[0];
+  const [mode, setMode] = useState<ReviewMode>("due");
+  const [filters, setFilters] = useState<VocabularyFilters>(defaultFilters);
+  const categories = useMemo(() => uniqueValues(entries.map((entry) => entry.category)), [entries]);
+  const subcategories = useMemo(
+    () =>
+      uniqueValues(
+        entries
+          .filter((entry) => filters.category === "all" || entry.category === filters.category)
+          .map((entry) => entry.subcategory),
+      ),
+    [entries, filters.category],
+  );
+
+  const reviewEntries = useMemo(
+    () =>
+      entries
+        .filter((entry) => mode === "targeted" || isDue(entry))
+        .filter((entry) => matchesFilters(entry, filters))
+        .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime()),
+    [entries, filters, mode],
+  );
+  const activeEntry = reviewEntries[0];
 
   const review = async (grade: ReviewGrade) => {
     if (!activeEntry) {
@@ -33,53 +70,127 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
     setRevealed(false);
   };
 
-  if (!activeEntry) {
-    return (
-      <section className="review-panel">
-        <div className="empty-state">
-          <Check size={28} />
-          <p>Keine Wörter sind fällig.</p>
-        </div>
-      </section>
-    );
-  }
+  const updateFilter = <Key extends keyof VocabularyFilters>(key: Key, value: VocabularyFilters[Key]) => {
+    setRevealed(false);
+    setFilters((current) => ({
+      ...current,
+      [key]: value,
+      subcategory: key === "category" ? "all" : current.subcategory,
+    }));
+  };
 
   return (
     <section className="review-panel">
-      <div className="review-topline">
-        <span>{dueEntries.length} fällig</span>
-        <span>Wiederholungen: {activeEntry.repetitions}</span>
-      </div>
-
-      <div className="flashcard">
-        <span className="eyebrow">Karte</span>
-        <h2>{activeEntry.term}</h2>
-
-        {revealed ? (
-          <div className="answer-area">
-            <p className="translation-line">{activeEntry.translation}</p>
-            <p>
-              <HighlightedExample sentence={activeEntry.exampleSource} term={activeEntry.term} />
-            </p>
-          </div>
-        ) : (
-          <button className="reveal-button" type="button" onClick={() => setRevealed(true)}>
-            <Eye size={18} />
-            Antwort zeigen
+      <div className="review-controls">
+        <div className="segmented review-mode-toggle">
+          <button type="button" className={mode === "due" ? "active" : ""} onClick={() => setMode("due")}>
+            Fällig
           </button>
-        )}
+          <button type="button" className={mode === "targeted" ? "active" : ""} onClick={() => setMode("targeted")}>
+            Gezielt
+          </button>
+        </div>
+
+        <div className="filter-bar compact">
+          <label>
+            <span>Sprache</span>
+            <select value={filters.language} onChange={(event) => updateFilter("language", event.target.value as VocabularyFilters["language"])}>
+              {languageFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Kategorie</span>
+            <select value={filters.category} onChange={(event) => updateFilter("category", event.target.value)}>
+              <option value="all">Alle Kategorien</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Unterkategorie</span>
+            <select value={filters.subcategory} onChange={(event) => updateFilter("subcategory", event.target.value)}>
+              <option value="all">Alle Unterkategorien</option>
+              {subcategories.map((subcategory) => (
+                <option key={subcategory} value={subcategory}>
+                  {subcategory}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
-      {revealed && (
-        <div className="grade-grid">
-          {gradeOptions.map(({ grade, label, icon: Icon }) => (
-            <button type="button" key={grade} onClick={() => review(grade)}>
-              <Icon size={17} />
-              {label}
-            </button>
-          ))}
+      {!activeEntry ? (
+        <div className="empty-state">
+          <Check size={28} />
+          <p>{mode === "due" ? "Keine Wörter sind für diese Auswahl fällig." : "Keine Wörter für diese Auswahl."}</p>
         </div>
+      ) : (
+        <>
+          <div className="review-topline">
+            <span>{reviewEntries.length} Karten</span>
+            <span>
+              {activeEntry.category} · {activeEntry.subcategory}
+            </span>
+            <span>Wiederholungen: {activeEntry.repetitions}</span>
+          </div>
+
+          <div className="flashcard">
+            <span className="eyebrow">
+              {languageLabel[activeEntry.sourceLanguage]} → {languageLabel[activeEntry.targetLanguage]}
+            </span>
+            <h2>{activeEntry.term}</h2>
+
+            {revealed ? (
+              <div className="answer-area">
+                <p className="translation-line">{activeEntry.translation}</p>
+                <p>
+                  <HighlightedExample sentence={activeEntry.exampleSource} term={activeEntry.term} />
+                </p>
+                {activeEntry.exampleTarget && <p className="muted-text">{activeEntry.exampleTarget}</p>}
+              </div>
+            ) : (
+              <button className="reveal-button" type="button" onClick={() => setRevealed(true)}>
+                <Eye size={18} />
+                Antwort zeigen
+              </button>
+            )}
+          </div>
+
+          {revealed && (
+            <div className="grade-grid">
+              {gradeOptions.map(({ grade, label, icon: Icon }) => (
+                <button type="button" key={grade} onClick={() => review(grade)}>
+                  <Icon size={17} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </section>
   );
+}
+
+function matchesFilters(entry: VocabularyEntry, filters: VocabularyFilters) {
+  const languageMatches =
+    filters.language === "all" || entry.sourceLanguage === filters.language || entry.targetLanguage === filters.language;
+  const categoryMatches = filters.category === "all" || entry.category === filters.category;
+  const subcategoryMatches = filters.subcategory === "all" || entry.subcategory === filters.subcategory;
+
+  return languageMatches && categoryMatches && subcategoryMatches;
+}
+
+function uniqueValues(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b, "de"));
 }

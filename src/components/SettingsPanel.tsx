@@ -2,12 +2,12 @@ import type { ReviewSettings } from "../types";
 
 interface SettingsPanelProps {
   settings: ReviewSettings;
-  onChange: (settings: ReviewSettings) => void;
+  onChange: (settings: ReviewSettings) => void | Promise<void>;
 }
 
 export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
   const updateAgainDelay = (value: number) => {
-    onChange({ ...settings, againDelayMinutes: value });
+    void onChange({ ...settings, againDelayMinutes: value });
   };
 
   return (

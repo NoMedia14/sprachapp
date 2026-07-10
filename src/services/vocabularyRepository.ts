@@ -11,6 +11,8 @@ type DbEntry = {
   translation: string;
   example_source: string;
   example_target: string | null;
+  category: string | null;
+  subcategory: string | null;
   provider: "local" | "public" | "deepl" | "openai";
   created_at: string;
   due_at: string;
@@ -81,7 +83,7 @@ export async function deleteVocabularyEntry(id: string) {
 
 function loadLocalVocabulary(): VocabularyEntry[] {
   const raw = localStorage.getItem(storageKey);
-  return raw ? (JSON.parse(raw) as VocabularyEntry[]) : [];
+  return raw ? (JSON.parse(raw) as VocabularyEntry[]).map(normalizeEntry) : [];
 }
 
 function saveLocalVocabulary(entries: VocabularyEntry[]) {
@@ -89,7 +91,7 @@ function saveLocalVocabulary(entries: VocabularyEntry[]) {
 }
 
 function fromDbEntry(entry: DbEntry): VocabularyEntry {
-  return {
+  return normalizeEntry({
     id: entry.id,
     term: entry.term,
     sourceLanguage: entry.source_language,
@@ -97,6 +99,8 @@ function fromDbEntry(entry: DbEntry): VocabularyEntry {
     translation: entry.translation,
     exampleSource: entry.example_source,
     exampleTarget: entry.example_target ?? undefined,
+    category: entry.category ?? "Nomen",
+    subcategory: entry.subcategory ?? "Allgemein",
     provider: entry.provider,
     createdAt: entry.created_at,
     dueAt: entry.due_at,
@@ -106,6 +110,15 @@ function fromDbEntry(entry: DbEntry): VocabularyEntry {
     easeFactor: entry.ease_factor,
     lapses: entry.lapses,
     tags: entry.tags,
+  });
+}
+
+function normalizeEntry(entry: VocabularyEntry): VocabularyEntry {
+  return {
+    ...entry,
+    category: entry.category || "Nomen",
+    subcategory: entry.subcategory || "Allgemein",
+    tags: entry.tags ?? [],
   };
 }
 
@@ -119,6 +132,8 @@ function toDbEntry(entry: VocabularyEntry, userId: string) {
     translation: entry.translation,
     example_source: entry.exampleSource,
     example_target: entry.exampleTarget ?? null,
+    category: entry.category || "Nomen",
+    subcategory: entry.subcategory || "Allgemein",
     provider: entry.provider,
     created_at: entry.createdAt,
     due_at: entry.dueAt,

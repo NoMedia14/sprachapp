@@ -1,13 +1,17 @@
 import { Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { LanguageCode, VocabularyEntry } from "../types";
+import type { LanguageCode, VocabularyEntry, VocabularyFilters } from "../types";
 
 interface SavedWordsProps {
   entries: VocabularyEntry[];
   onDelete: (id: string) => Promise<void>;
 }
 
-type WordFilter = "all" | "pt-BR" | "en";
+const defaultFilters: VocabularyFilters = {
+  language: "all",
+  category: "all",
+  subcategory: "all",
+};
 
 const languageLabel: Record<LanguageCode, string> = {
   de: "Deutsch",
@@ -15,21 +19,37 @@ const languageLabel: Record<LanguageCode, string> = {
   en: "Englisch",
 };
 
-const filterOptions: Array<{ value: WordFilter; label: string }> = [
-  { value: "all", label: "Alle" },
+const languageFilterOptions: Array<{ value: VocabularyFilters["language"]; label: string }> = [
+  { value: "all", label: "Alle Sprachen" },
   { value: "pt-BR", label: "Portugiesisch" },
   { value: "en", label: "Englisch" },
 ];
 
 export function SavedWords({ entries, onDelete }: SavedWordsProps) {
-  const [filter, setFilter] = useState<WordFilter>("all");
-  const filteredEntries = useMemo(() => {
-    if (filter === "all") {
-      return entries;
-    }
+  const [filters, setFilters] = useState<VocabularyFilters>(defaultFilters);
+  const categories = useMemo(() => uniqueValues(entries.map((entry) => entry.category)), [entries]);
+  const subcategories = useMemo(
+    () =>
+      uniqueValues(
+        entries
+          .filter((entry) => filters.category === "all" || entry.category === filters.category)
+          .map((entry) => entry.subcategory),
+      ),
+    [entries, filters.category],
+  );
 
-    return entries.filter((entry) => entry.sourceLanguage === filter || entry.targetLanguage === filter);
-  }, [entries, filter]);
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter((entry) => {
+        const languageMatches =
+          filters.language === "all" || entry.sourceLanguage === filters.language || entry.targetLanguage === filters.language;
+        const categoryMatches = filters.category === "all" || entry.category === filters.category;
+        const subcategoryMatches = filters.subcategory === "all" || entry.subcategory === filters.subcategory;
+
+        return languageMatches && categoryMatches && subcategoryMatches;
+      }),
+    [entries, filters],
+  );
 
   if (!entries.length) {
     return (
@@ -41,19 +61,51 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
     );
   }
 
+  const updateFilter = <Key extends keyof VocabularyFilters>(key: Key, value: VocabularyFilters[Key]) => {
+    setFilters((current) => ({
+      ...current,
+      [key]: value,
+      subcategory: key === "category" ? "all" : current.subcategory,
+    }));
+  };
+
   return (
     <section className="words-section">
-      <div className="word-filter">
-        {filterOptions.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className={filter === option.value ? "active" : ""}
-            onClick={() => setFilter(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
+      <div className="filter-bar">
+        <label>
+          <span>Sprache</span>
+          <select value={filters.language} onChange={(event) => updateFilter("language", event.target.value as VocabularyFilters["language"])}>
+            {languageFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Kategorie</span>
+          <select value={filters.category} onChange={(event) => updateFilter("category", event.target.value)}>
+            <option value="all">Alle Kategorien</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Unterkategorie</span>
+          <select value={filters.subcategory} onChange={(event) => updateFilter("subcategory", event.target.value)}>
+            <option value="all">Alle Unterkategorien</option>
+            {subcategories.map((subcategory) => (
+              <option key={subcategory} value={subcategory}>
+                {subcategory}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="word-list compact">
@@ -66,22 +118,24 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
         {filteredEntries.map((entry) => {
           const germanWord = getGermanWord(entry);
           const otherWord = getOtherWord(entry);
+          const otherLanguage = getOtherLanguage(entry);
 
           return (
             <article className="word-list-row compact" key={entry.id}>
-              <div className="word-cell word-language">
-                <span>{languageLabel[entry.sourceLanguage]}</span>
-                <strong>{languageLabel[entry.targetLanguage]}</strong>
-              </div>
-
               <div className="word-cell">
                 <span>Deutsch</span>
                 <strong>{germanWord}</strong>
               </div>
 
               <div className="word-cell">
-                <span>Andere Sprache</span>
+                <span>{languageLabel[otherLanguage]}</span>
                 <strong>{otherWord}</strong>
+              </div>
+
+              <div className="word-cell category-cell">
+                <span>Kategorie</span>
+                <strong>{entry.category}</strong>
+                <small>{entry.subcategory}</small>
               </div>
 
               <div className="word-cell word-example-cell">
@@ -96,13 +150,13 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
               </div>
 
               <button
-                className="icon-button subtle"
+                className="icon-button subtle delete-word-button"
                 type="button"
                 onClick={() => onDelete(entry.id)}
                 aria-label="Löschen"
                 title="Löschen"
               >
-                <Trash2 size={16} />
+                <Trash2 size={14} />
               </button>
             </article>
           );
@@ -110,6 +164,10 @@ export function SavedWords({ entries, onDelete }: SavedWordsProps) {
       </div>
     </section>
   );
+}
+
+function uniqueValues(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b, "de"));
 }
 
 function getGermanWord(entry: VocabularyEntry) {
@@ -134,4 +192,12 @@ function getOtherWord(entry: VocabularyEntry) {
   }
 
   return `${entry.term} / ${entry.translation}`;
+}
+
+function getOtherLanguage(entry: VocabularyEntry): LanguageCode {
+  if (entry.sourceLanguage === "de") {
+    return entry.targetLanguage;
+  }
+
+  return entry.sourceLanguage;
 }

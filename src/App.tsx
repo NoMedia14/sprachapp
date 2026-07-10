@@ -9,6 +9,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { WordLookup } from "./components/WordLookup";
 import { supabase } from "./lib/supabase";
 import { createInitialReviewState, defaultReviewSettings, isDue } from "./services/spacedRepetition";
+import { loadLocalReviewSettings, loadReviewSettings, saveReviewSettings } from "./services/settingsRepository";
 import { emptyUsageSummary, loadMonthlyUsageSummary, type MonthlyUsageSummary } from "./services/usageRepository";
 import {
   deleteVocabularyEntry,
@@ -20,7 +21,6 @@ import type { ReviewSettings, TranslationResult, VocabularyEntry } from "./types
 
 type View = "lookup" | "review" | "words" | "settings";
 
-const settingsStorageKey = "sprachapp:review-settings";
 const costWidgetStorageKey = "sprachapp:cost-widget-hidden";
 
 const navItems: Array<{ view: View; label: string; icon: typeof Sparkles }> = [
@@ -39,10 +39,7 @@ export default function App() {
   const [costWidgetHidden, setCostWidgetHidden] = useState(() => {
     return localStorage.getItem(costWidgetStorageKey) === "true";
   });
-  const [settings, setSettings] = useState<ReviewSettings>(() => {
-    const raw = localStorage.getItem(settingsStorageKey);
-    return raw ? { ...defaultReviewSettings, ...JSON.parse(raw) } : defaultReviewSettings;
-  });
+  const [settings, setSettings] = useState<ReviewSettings>(() => loadLocalReviewSettings());
 
   const dueCount = useMemo(() => entries.filter((entry) => isDue(entry)).length, [entries]);
 
@@ -52,6 +49,10 @@ export default function App() {
 
   const refreshUsage = useCallback(async () => {
     setUsageSummary(await loadMonthlyUsageSummary());
+  }, []);
+
+  const refreshSettings = useCallback(async () => {
+    setSettings(await loadReviewSettings());
   }, []);
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export default function App() {
       if (data.session?.user) {
         refreshVocabulary();
         refreshUsage();
+        refreshSettings();
       }
     });
 
@@ -76,18 +78,24 @@ export default function App() {
       if (session?.user) {
         refreshVocabulary();
         refreshUsage();
+        refreshSettings();
       } else {
         setEntries([]);
         setUsageSummary(emptyUsageSummary);
+        setSettings(defaultReviewSettings);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const saveSettings = (nextSettings: ReviewSettings) => {
+  const saveSettings = async (nextSettings: ReviewSettings) => {
     setSettings(nextSettings);
-    localStorage.setItem(settingsStorageKey, JSON.stringify(nextSettings));
+    await saveReviewSettings(nextSettings);
+  };
+
+  const handleSignedIn = async () => {
+    await Promise.all([refreshVocabulary(), refreshUsage(), refreshSettings()]);
   };
 
   const toggleCostWidget = () => {
@@ -143,7 +151,7 @@ export default function App() {
   }
 
   if (supabase && !user) {
-    return <AuthPanel onSignedIn={refreshVocabulary} />;
+    return <AuthPanel onSignedIn={handleSignedIn} />;
   }
 
   return (

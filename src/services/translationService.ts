@@ -65,6 +65,8 @@ async function createPublicTranslationResult(
     translation,
     exampleSource,
     exampleTarget,
+    category: categorizeLocal(term, translation),
+    subcategory: subcategorizeLocal(term, translation),
     provider: "public",
   };
 }
@@ -110,6 +112,40 @@ function createLocalResult(
     translation,
     exampleSource: exampleTemplates[sourceLanguage](term),
     exampleTarget: exampleTemplates[targetLanguage](translation),
+    category: categorizeLocal(term, translation),
+    subcategory: subcategorizeLocal(term, translation),
     provider: "local",
   };
+}
+
+function categorizeLocal(term: string, translation: string) {
+  const text = `${term} ${translation}`.toLowerCase();
+
+  if (/\b(arbeiten|trabalhar|work|lernen|aprender|learn)\b/.test(text)) {
+    return "Verben";
+  }
+
+  if (/\b(schnell|langsam|gut|bad|bom|boa|ruim)\b/.test(text)) {
+    return "Adjektive";
+  }
+
+  return "Nomen";
+}
+
+function subcategorizeLocal(term: string, translation: string) {
+  const text = `${term} ${translation}`.toLowerCase();
+
+  if (/\b(apfel|apple|maca|maçã|banana|orange)\b/.test(text)) {
+    return "Obst";
+  }
+
+  if (/\b(tuer|tür|door|porta|fenster|window|janela|wand|wall|parede|boden|floor|chao|chão)\b/.test(text)) {
+    return "Haus";
+  }
+
+  if (/\b(tisch|table|mesa|stuhl|chair|cadeira|lampe|lamp|lampada|lâmpada|decke|blanket|cobertor)\b/.test(text)) {
+    return "Möbel";
+  }
+
+  return "Allgemein";
 }
