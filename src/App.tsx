@@ -1,9 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { BarChart3, BookMarked, Library, LogOut, RotateCcw, Settings, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { AuthPanel } from "./components/AuthPanel";
 import { CostWidget } from "./components/CostWidget";
-import { ProgressDashboard } from "./components/ProgressDashboard";
 import { ReviewSession } from "./components/ReviewSession";
 import { SavedWords } from "./components/SavedWords";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -11,6 +10,7 @@ import { WordLookup } from "./components/WordLookup";
 import { supabase } from "./lib/supabase";
 import { createInitialReviewState, defaultReviewSettings, isDue } from "./services/spacedRepetition";
 import { loadLocalReviewSettings, loadReviewSettings, saveReviewSettings } from "./services/settingsRepository";
+import { translateWord } from "./services/translationService";
 import { emptyUsageSummary, loadMonthlyUsageSummary, type MonthlyUsageSummary } from "./services/usageRepository";
 import {
   deleteVocabularyEntry,
@@ -18,11 +18,14 @@ import {
   saveVocabularyEntry,
   updateVocabularyEntry,
 } from "./services/vocabularyRepository";
-import type { ReviewSettings, TranslationResult, VocabularyEntry } from "./types";
+import type { ReferenceLexiconEntry, ReviewSettings, TranslationResult, VocabularyEntry } from "./types";
 
 type View = "lookup" | "review" | "words" | "progress" | "settings";
 
 const costWidgetStorageKey = "sprachapp:cost-widget-hidden";
+const ProgressDashboard = lazy(() =>
+  import("./components/ProgressDashboard").then((module) => ({ default: module.ProgressDashboard })),
+);
 
 const navItems: Array<{ view: View; label: string; icon: typeof Sparkles }> = [
   { view: "lookup", label: "Nachschlagen", icon: Sparkles },
@@ -133,6 +136,29 @@ export default function App() {
     setEntries((current) => current.map((candidate) => (candidate.id === entry.id ? entry : candidate)));
   };
 
+  const saveReferenceEntry = async (referenceEntry: ReferenceLexiconEntry) => {
+    const translated = await translateWord(referenceEntry.lemma, referenceEntry.language, "de");
+    const dictionaryFallback = referenceEntry.translation?.split("/")[0]?.trim() || referenceEntry.meaning;
+    const translatedGerman = translated.translation.trim();
+    const germanTerm =
+      translatedGerman && translatedGerman.toLocaleLowerCase("de") !== referenceEntry.lemma.toLocaleLowerCase(referenceEntry.language)
+        ? translatedGerman
+        : dictionaryFallback;
+
+    await saveTranslation({
+      term: germanTerm,
+      sourceLanguage: "de",
+      targetLanguage: referenceEntry.language,
+      translation: referenceEntry.lemma,
+      exampleSource: translated.exampleTarget || `${germanTerm} wird in einem deutschen Beispielsatz verwendet.`,
+      exampleTarget: translated.exampleSource || referenceEntry.exampleSentence,
+      category: translated.category,
+      subcategory: translated.subcategory,
+      provider: translated.provider,
+      usage: translated.usage,
+    });
+  };
+
   const deleteEntry = async (id: string) => {
     await deleteVocabularyEntry(id);
     setEntries((current) => current.filter((entry) => entry.id !== id));
@@ -213,7 +239,11 @@ export default function App() {
         {view === "lookup" && <WordLookup onSave={saveTranslation} onTranslated={refreshUsage} />}
         {view === "review" && <ReviewSession entries={entries} settings={settings} onReview={reviewEntry} />}
         {view === "words" && <SavedWords entries={entries} onDelete={deleteEntry} />}
-        {view === "progress" && <ProgressDashboard entries={entries} settings={settings} onSave={saveTranslation} />}
+        {view === "progress" && (
+          <Suspense fallback={<div className="loading-line">Fortschritt wird geladen...</div>}>
+            <ProgressDashboard entries={entries} settings={settings} onAddReference={saveReferenceEntry} />
+          </Suspense>
+        )}
         {view === "settings" && <SettingsPanel settings={settings} onChange={saveSettings} />}
       </section>
     </main>

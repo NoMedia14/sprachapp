@@ -6,10 +6,9 @@ import type {
   ReferenceLevelProgress,
   ReviewSettings,
   StudyLanguageCode,
-  TranslationResult,
   VocabularyEntry,
 } from "../types";
-import { createInitialReviewState, isMasteredByExistingSrs } from "./spacedRepetition";
+import { isMasteredByExistingSrs } from "./spacedRepetition";
 
 export const cefrLevels = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 export const progressCompletionThreshold = 85;
@@ -156,13 +155,16 @@ export function getEntryNormalizedLemma(entry: VocabularyEntry, language: StudyL
 }
 
 export function normalizeLemma(value: string, language: StudyLanguageCode) {
-  const normalized = value
+  let normalized = value
     .trim()
     .toLocaleLowerCase(language === "pt-BR" ? "pt-BR" : "en")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .normalize("NFC")
     .replace(/[^\p{Letter}\s'-]/gu, "")
     .replace(/\s+/g, " ");
+
+  if (language === "en" && /^to [\p{Letter}'-]+$/u.test(normalized)) {
+    normalized = normalized.slice(3);
+  }
 
   return normalized;
 }
@@ -171,6 +173,10 @@ export function getEntryContentType(entry: VocabularyEntry, language: StudyLangu
   const value = entry.sourceLanguage === language ? entry.term : entry.translation;
   const trimmed = value.trim();
   const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+
+  if (language === "en" && /^to\s+[\p{Letter}'-]+$/iu.test(trimmed)) {
+    return "word";
+  }
 
   if (/[.!?]$/.test(trimmed) || wordCount >= 5) {
     return "sentence";
@@ -181,29 +187,6 @@ export function getEntryContentType(entry: VocabularyEntry, language: StudyLangu
   }
 
   return "word";
-}
-
-export function referenceEntryToTranslationResult(entry: ReferenceLexiconEntry): TranslationResult {
-  return {
-    term: entry.translation || entry.meaning,
-    sourceLanguage: "de",
-    targetLanguage: entry.language,
-    translation: entry.lemma,
-    exampleSource: `${entry.translation || entry.lemma} ist ein Referenzwort aus ${entry.cefrLevel}.`,
-    exampleTarget: entry.exampleSentence,
-    category: entry.partOfSpeech,
-    subcategory: entry.topics[0] || "Referenzwortschatz",
-    provider: "local",
-  };
-}
-
-export function createVocabularyFromReference(entry: ReferenceLexiconEntry): VocabularyEntry {
-  return {
-    ...createInitialReviewState(),
-    ...referenceEntryToTranslationResult(entry),
-    id: crypto.randomUUID(),
-    tags: ["reference", entry.version, entry.cefrLevel],
-  };
 }
 
 function calculateLevelProgress(

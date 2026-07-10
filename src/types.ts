@@ -59,6 +59,7 @@ export interface ReferenceLexiconEntry {
   partOfSpeech: string;
   meaning: string;
   translation?: string;
+  translationSource?: "curated" | "dictionary";
   cefrLevel: CefrLevel;
   frequencyScore: number;
   dispersionScore: number;

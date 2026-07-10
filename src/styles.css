@@ -888,16 +888,105 @@ mark {
 .flashcard {
   align-items: center;
   display: grid;
-  gap: 24px;
+  gap: 18px;
   justify-items: center;
-  min-height: 280px;
+  min-height: 330px;
   text-align: center;
 }
 
-.answer-area {
+.review-word-grid {
+  align-items: stretch;
   display: grid;
   gap: 12px;
-  max-width: 680px;
+  grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr);
+  max-width: 760px;
+  width: 100%;
+}
+
+.review-word-side {
+  align-content: center;
+  background: #f7f5ef;
+  border: 1px solid #ded8cc;
+  border-top: 4px solid #c69a45;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  min-height: 150px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.review-word-side.target {
+  background: #f2f7f5;
+  border-color: #cfddd7;
+  border-top-color: #23866f;
+}
+
+.review-word-side.concealed {
+  background: #f7faf8;
+  border-style: dashed;
+}
+
+.review-word-side > span,
+.review-example > span {
+  color: #68756f;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.review-word-side strong {
+  color: #202124;
+  font-size: 34px;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.review-word-side.target strong {
+  color: #0f6f5b;
+}
+
+.review-direction-icon {
+  align-self: center;
+  background: #ffffff;
+  border: 1px solid #ded8cc;
+  border-radius: 50%;
+  color: #53605b;
+  height: 34px;
+  justify-self: center;
+  padding: 7px;
+  width: 34px;
+}
+
+.review-examples {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 760px;
+  text-align: left;
+  width: 100%;
+}
+
+.review-example {
+  background: #ffffff;
+  border: 1px solid #e3ded6;
+  border-left: 4px solid #c69a45;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+.review-example.target {
+  border-left-color: #23866f;
+}
+
+.review-example p {
+  color: #394541;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .reveal-button,
@@ -1152,6 +1241,12 @@ mark {
   white-space: nowrap;
 }
 
+.level-add-button:disabled {
+  background: #e8eee7;
+  color: #59655f;
+  cursor: default;
+}
+
 .reference-detail {
   display: grid;
   gap: 14px;
@@ -1219,6 +1314,18 @@ mark {
 .reference-list {
   display: grid;
   gap: 8px;
+}
+
+.reference-save-error {
+  margin: 0;
+}
+
+.reference-more-button {
+  background: #ffffff;
+  border: 1px solid #bfd2c5;
+  color: #0f6f5b;
+  justify-content: center;
+  min-height: 42px;
 }
 
 .reference-row {
@@ -1481,6 +1588,24 @@ mark {
   .result-heading.compact {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .review-word-grid,
+  .review-examples {
+    grid-template-columns: 1fr;
+  }
+
+  .review-direction-icon {
+    transform: rotate(90deg);
+  }
+
+  .review-word-side {
+    min-height: 112px;
+    padding: 16px;
+  }
+
+  .review-word-side strong {
+    font-size: 28px;
   }
 }
 

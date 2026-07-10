@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReferenceEntries } from "./progressService";
-import { calculateProgressSummary } from "./progressService";
+import { calculateProgressSummary, getEntryContentType, getReferenceEntries, normalizeLemma } from "./progressService";
 import { defaultReviewSettings } from "./spacedRepetition";
 import type { LanguageCode, VocabularyEntry } from "../types";
 
@@ -16,16 +15,14 @@ describe("progressService", () => {
 
     expect(portuguese.masteredReferenceLemmas).toBe(1);
     expect(english.masteredReferenceLemmas).toBe(1);
-    expect(portuguese.referenceVersion).toBe("pt-BR-reference-v1");
-    expect(english.referenceVersion).toBe("en-reference-v1");
+    expect(portuguese.referenceVersion).toBe("pt-BR-cefr-mapped-reference-v3");
+    expect(english.referenceVersion).toBe("en-cefr-reference-v3");
   });
 
   it("does not let a higher level count as reached while lower levels are incomplete", () => {
-    const entries = [
-      entry("Reise", "viagem", "pt-BR", true),
-      entry("Arbeit", "trabalho", "pt-BR", true),
-      entry("kaufen", "comprar", "pt-BR", true),
-    ];
+    const entries = getReferenceEntries("pt-BR")
+      .filter((referenceEntry) => referenceEntry.cefrLevel === "A2")
+      .map((referenceEntry) => entry(referenceEntry.translation ?? referenceEntry.meaning, referenceEntry.lemma, "pt-BR", true));
 
     const summary = calculateProgressSummary(entries, "pt-BR", defaultReviewSettings);
 
@@ -41,6 +38,45 @@ describe("progressService", () => {
     expect(summary.levels.find((level) => level.level === "A1")?.referenceCount).toBe(
       referenceEntries.filter((entry) => entry.cefrLevel === "A1").length,
     );
+  });
+
+  it("ships a substantial unique reference vocabulary for both languages", () => {
+    for (const language of ["pt-BR", "en"] as const) {
+      const referenceEntries = getReferenceEntries(language);
+      const uniqueLemmas = new Set(referenceEntries.map((referenceEntry) => referenceEntry.normalizedLemma));
+      const levelCounts = Object.fromEntries(
+        ["A1", "A2", "B1", "B2", "C1", "C2"].map((level) => [
+          level,
+          referenceEntries.filter((referenceEntry) => referenceEntry.cefrLevel === level).length,
+        ]),
+      );
+
+      expect(referenceEntries).toHaveLength(3000);
+      expect(uniqueLemmas.size).toBe(referenceEntries.length);
+      expect(levelCounts).toEqual(
+        language === "pt-BR"
+          ? { A1: 620, A2: 620, B1: 660, B2: 550, C1: 400, C2: 150 }
+          : { A1: 500, A2: 600, B1: 700, B2: 600, C1: 400, C2: 200 },
+      );
+    }
+  });
+
+  it("keeps Portuguese accents distinct and recognizes English infinitives as one lemma", () => {
+    expect(normalizeLemma("e", "pt-BR")).not.toBe(normalizeLemma("é", "pt-BR"));
+    expect(normalizeLemma("to work", "en")).toBe("work");
+    expect(getEntryContentType(entry("arbeiten", "to work", "en", false), "en")).toBe("word");
+  });
+
+  it("keeps central Brazilian Portuguese vocabulary in practical beginner levels", () => {
+    const byLemma = new Map(getReferenceEntries("pt-BR").map((referenceEntry) => [referenceEntry.normalizedLemma, referenceEntry.cefrLevel]));
+
+    for (const lemma of ["ser", "vida", "homem", "comer", "casa", "porta", "água", "família"]) {
+      expect(byLemma.get(lemma)).toBe("A1");
+    }
+
+    for (const lemma of ["morango", "garfo", "cenoura", "trabalho", "viagem", "aeroporto", "hospital"]) {
+      expect(byLemma.get(lemma)).toBe("A2");
+    }
   });
 
   it("does not count duplicate learned lemmas above one hundred percent", () => {

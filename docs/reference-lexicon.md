@@ -1,60 +1,67 @@
 # Referenzwortschatz
 
-Der Bereich `Fortschritt` nutzt versionierte Referenzwortschätze je Sprache:
+Der Bereich `Fortschritt` enthält je Sprache einen versionierten Referenzwortschatz:
 
-- `pt-BR-reference-v1`
-- `en-reference-v1`
+- `pt-BR-cefr-mapped-reference-v3`: 3.000 brasilianisch-portugiesische Einträge
+- `en-cefr-reference-v3`: 3.000 englische Einträge
 
-Die aktuell in der App enthaltenen Einträge sind eine kleine kuratierte Startreferenz. Sie sind nicht als offizieller GER-Wortschatz zu verstehen und werden in der UI deshalb als geschätzter Wortschatzfortschritt dargestellt.
+Die App berechnet sämtliche Summen und Fortschrittswerte aus den tatsächlich geladenen Einträgen. Im Anwendungscode gibt es keine separat gepflegten Zielzahlen.
 
-## Datenquellen und Lizenzstatus
+## Einordnung
 
-Aktueller Stand:
+Die Referenz ist eine CEFR-abgeglichene Lernorientierung und keine offizielle GER-Wortliste. Englisch nutzt Lemma- und Stufenwerte aus dem offenen `Words-CEFR-Dataset`. Portugiesisch wird über ein portugiesisch-englisches Wörterbuch auf diese Stufen abgebildet und innerhalb der Stufen nach brasilianischer Nutzungshäufigkeit sortiert.
 
-- Quelle: eigene kuratierte Startliste, KI-unterstützt klassifiziert und manuell plausibilisiert
-- Lizenzstatus: projektintern erzeugte Seed-Daten
-- Einschränkung: nicht vollständig, nicht offiziell, nicht als Sprachtest geeignet
+| Stufe | Englisch | Portugiesisch (BR) |
+| --- | ---: | ---: |
+| A1 | 500 | 620 |
+| A2 | 600 | 620 |
+| B1 | 700 | 660 |
+| B2 | 600 | 550 |
+| C1 | 400 | 400 |
+| C2 | 200 | 150 |
 
-Für einen vollständigen Wortschatz darf keine angeblich offizielle Liste erfunden werden. Benötigt wird ein geprüfter Datensatz mit erlaubter Lizenz, zum Beispiel eine eigene Wortliste, ein frei nutzbarer Frequenzdatensatz oder ein kommerziell lizenzierter Wortschatz.
+Diese Zuordnung eignet sich für einen motivierenden Lernfortschritt, ersetzt aber keine Sprachprüfung. Insbesondere Grammatik, Hörverstehen, Lesen, Schreiben und Sprechen werden dadurch nicht bewertet.
 
-## Klassifikation
+## Datenquellen
 
-Jeder Eintrag enthält:
+Die Datei `src/data/referenceLexicon.generated.json` wird reproduzierbar aus folgenden offenen Quellen erzeugt:
 
-- Sprache
-- Lemma
-- normalisierte Schreibweise
-- Wortart
-- Bedeutung
-- optionale deutsche Übersetzung
-- GER-Stufe
-- Häufigkeitswert
-- Streuungswert
-- Klassifikationsquelle
-- Konfidenzwert
-- Referenzversion
-- Themen
+- FrequencyWords 2018 für die Reihenfolge nach Nutzungshäufigkeit: MIT-Lizenz, https://github.com/hermitdave/FrequencyWords
+- Words-CEFR-Dataset für englische Lemmata und die CEFR-Zuordnung: MIT-Lizenz, https://github.com/Maximax67/Words-CEFR-Dataset
+- FreeDict `eng-deu` 1.9-fd1 für englische Lemmata und deutsche Wörterbuchentsprechungen: die Quelldatei nennt GPLv3 und AGPLv3 für unterschiedliche Teile, https://download.freedict.org/dictionaries/eng-deu/1.9-fd1/
+- FreeDict `por-deu` 0.2 für portugiesische Lemmata und deutsche Wörterbuchentsprechungen: GPLv2 oder später, https://download.freedict.org/dictionaries/por-deu/0.2/
+- FreeDict `por-eng` 0.2 für die portugiesisch-englische Stufenabbildung: Wörterbuchlizenz laut Quelldatei, https://download.freedict.org/dictionaries/por-eng/0.2/
 
-Der zentrale Konfidenzgrenzwert für Imports liegt bei `0.75`. Einträge unterhalb dieses Werts müssen als `UNASSIGNED` importiert werden und zählen nicht in die Fortschritts-Nenner.
+Die erzeugte Datendatei ist getrennt vom Anwendungscode zu betrachten und unter Beachtung der jeweiligen Quelldatenlizenzen weiterzugeben. Die vollständigen Quelldateien und Lizenztexte sind über die oben genannten Links verfügbar.
 
-## Importprozess
+## Übersetzungsqualität
 
-Ein größerer Referenzwortschatz wird als JSON-Datei importiert:
+FreeDict kann für ein Wort mehrere Bedeutungen enthalten. Der Generator priorisiert deshalb häufige deutsche Entsprechungen und enthält für zentrale portugiesische Grundwörter kuratierte A1/A2-Korrekturen. Häufige gebeugte Verbformen, Kontraktionen und erkennbare Eigennamen werden aus der portugiesischen Lemmaliste entfernt. Im fortgeschrittenen portugiesischen Bereich werden häufigere C2-Kandidaten nach C1 verschoben, wenn die direkte Wörterbuchabbildung dort zu wenig Einträge liefert.
+
+Ein Wörterbuchvorschlag wird in der Oberfläche nicht als geprüfte Übersetzung ausgegeben. Wenn ein Referenzwort zum Lernen hinzugefügt wird, prüft die vorhandene OpenAI-Übersetzung das Wort erneut und erzeugt natürliche Beispielsätze.
+
+## Aktualisierung
+
+Unter Windows:
+
+```powershell
+py -3 scripts/build-reference-lexicon.py
+```
+
+Unter macOS oder Linux:
 
 ```bash
-npm run reference:import -- data/reference/pt-BR-reference-v2.json
+python3 scripts/build-reference-lexicon.py
 ```
 
-Das Skript validiert die Einträge und erzeugt standardmäßig:
+Das Skript lädt die angegebenen Versionen, validiert die Zielgröße und überschreibt anschließend `src/data/referenceLexicon.generated.json`.
 
-```text
-supabase/seed/reference-lexicon-upsert.sql
+Für eigene kuratierte JSON-Imports bleibt zusätzlich der bestehende Ablauf verfügbar:
+
+```bash
+npm run reference:import -- data/reference/pt-BR-reference-v3.json
 ```
-
-Diese SQL-Datei kann anschließend kontrolliert im Supabase SQL Editor ausgeführt werden.
 
 ## Fortschrittsregel
 
-Eine GER-Stufe gilt appintern als abgeschlossen, wenn mindestens `85%` der Referenzlemmata dieser Stufe durch das bestehende Spaced-Repetition-System als beherrscht gelten.
-
-Wichtig: Eine höhere Stufe wird nur als erreicht angezeigt, wenn die darunterliegenden Stufen ebenfalls abgeschlossen sind.
+Eine Stufe gilt appintern als abgeschlossen, wenn mindestens `85%` ihrer Referenzlemmata durch das bestehende Spaced-Repetition-System als beherrscht gelten. Eine höhere Stufe wird erst als erreicht angezeigt, wenn auch die darunterliegenden Stufen abgeschlossen sind.

@@ -1,5 +1,5 @@
-import { BookPlus, CheckCircle2, ChevronDown, ChevronUp, Loader2, Plus, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CheckCircle2, ChevronDown, ChevronUp, ListFilter, Loader2, Plus, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   calculateProgressSummary,
   getEntryNormalizedLemma,
@@ -7,21 +7,21 @@ import {
   getReferenceEntries,
   progressCompletionThreshold,
   progressLanguages,
-  referenceEntryToTranslationResult,
 } from "../services/progressService";
 import { isMasteredByExistingSrs } from "../services/spacedRepetition";
-import type { CefrLevel, ReferenceLexiconEntry, ReviewSettings, StudyLanguageCode, TranslationResult, VocabularyEntry } from "../types";
+import type { CefrLevel, ReferenceLexiconEntry, ReviewSettings, StudyLanguageCode, VocabularyEntry } from "../types";
 
 interface ProgressDashboardProps {
   entries: VocabularyEntry[];
   settings: ReviewSettings;
-  onSave: (result: TranslationResult) => Promise<void>;
+  onAddReference: (entry: ReferenceLexiconEntry) => Promise<void>;
 }
 
 type ReferenceStatusFilter = "all" | "saved" | "missing" | "mastered" | "learning";
 type ReferenceSort = "frequency" | "alphabetical" | "status";
 
 const storageKey = "sprachapp:progress-language";
+const referencePageSize = 50;
 
 const statusLabels: Record<ReferenceStatusFilter, string> = {
   all: "Alle",
@@ -31,7 +31,7 @@ const statusLabels: Record<ReferenceStatusFilter, string> = {
   learning: "Noch zu lernen",
 };
 
-export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboardProps) {
+export function ProgressDashboard({ entries, settings, onAddReference }: ProgressDashboardProps) {
   const [language, setLanguage] = useState<StudyLanguageCode>(() => {
     const stored = localStorage.getItem(storageKey);
     return stored === "en" || stored === "pt-BR" ? stored : "pt-BR";
@@ -43,6 +43,8 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
   const [statusFilter, setStatusFilter] = useState<ReferenceStatusFilter>("all");
   const [sort, setSort] = useState<ReferenceSort>("frequency");
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(referencePageSize);
+  const [saveError, setSaveError] = useState("");
 
   const summary = useMemo(() => calculateProgressSummary(entries, language, settings), [entries, language, settings]);
   const referenceEntries = useMemo(() => getReferenceEntries(language), [language]);
@@ -59,7 +61,7 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
         const status = getReferenceStatus(entry, userLemmas);
         const matchesQuery =
           !normalizedQuery ||
-          [entry.lemma, entry.translation, entry.meaning, entry.partOfSpeech].some((value) =>
+          [entry.lemma, entry.translationSource === "curated" ? entry.translation : "", entry.meaning, entry.partOfSpeech].some((value) =>
             (value ?? "").toLocaleLowerCase("de").includes(normalizedQuery),
           );
         const matchesTopic = topic === "all" || entry.topics.includes(topic);
@@ -77,6 +79,11 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
   }, [partOfSpeech, query, referenceEntries, selectedLevel, sort, statusFilter, topic, userLemmas]);
 
   const selectedLanguageLabel = progressLanguages.find((option) => option.value === language)?.label ?? language;
+  const visibleReferenceEntries = filteredReferenceEntries.slice(0, visibleCount);
+
+  useEffect(() => {
+    setVisibleCount(referencePageSize);
+  }, [language, partOfSpeech, query, selectedLevel, sort, statusFilter, topic]);
 
   const changeLanguage = (nextLanguage: StudyLanguageCode) => {
     setLanguage(nextLanguage);
@@ -86,6 +93,7 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
     setPartOfSpeech("all");
     setStatusFilter("all");
     setQuery("");
+    setSaveError("");
   };
 
   const addReferenceEntry = async (entry: ReferenceLexiconEntry) => {
@@ -94,40 +102,27 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
     }
 
     setSavingIds((current) => new Set(current).add(entry.id));
-    await onSave(referenceEntryToTranslationResult(entry));
-    setSavingIds((current) => {
-      const next = new Set(current);
-      next.delete(entry.id);
-      return next;
-    });
+    setSaveError("");
+
+    try {
+      await onAddReference(entry);
+    } catch {
+      setSaveError("Das Wort konnte gerade nicht hinzugefügt werden. Bitte versuche es erneut.");
+    } finally {
+      setSavingIds((current) => {
+        const next = new Set(current);
+        next.delete(entry.id);
+        return next;
+      });
+    }
   };
 
-  const addMissingLevelEntries = async (level: Exclude<CefrLevel, "UNASSIGNED">) => {
-    const missingEntries = referenceEntries.filter((entry) => entry.cefrLevel === level && !userLemmas.has(entry.normalizedLemma));
-
-    if (!missingEntries.length) {
-      return;
-    }
-
-    const confirmed = window.confirm(`${missingEntries.length} fehlende Wörter aus ${level} zum Lernen hinzufügen?`);
-
-    if (!confirmed) {
-      return;
-    }
-
-    setSavingIds((current) => new Set([...current, ...missingEntries.map((entry) => entry.id)]));
-
-    for (const entry of missingEntries) {
-      await onSave(referenceEntryToTranslationResult(entry));
-    }
-
-    setSavingIds((current) => {
-      const next = new Set(current);
-      for (const entry of missingEntries) {
-        next.delete(entry.id);
-      }
-      return next;
-    });
+  const showMissingLevelEntries = (level: Exclude<CefrLevel, "UNASSIGNED">) => {
+    setSelectedLevel(level);
+    setStatusFilter("missing");
+    setQuery("");
+    setTopic("all");
+    setPartOfSpeech("all");
   };
 
   return (
@@ -158,7 +153,7 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
             <span style={{ width: `${summary.overallPercent}%` }} />
           </div>
           <small>
-            {summary.masteredReferenceLemmas} von {summary.referenceCount} Referenzwörtern beherrscht
+            {formatNumber(summary.masteredReferenceLemmas)} von {formatNumber(summary.referenceCount)} Referenzwörtern beherrscht
           </small>
         </div>
 
@@ -171,8 +166,8 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
       </div>
 
       <p className="progress-note">
-        Die Einstufung zeigt deinen geschätzten Wortschatzfortschritt. Sie ersetzt keinen vollständigen Sprachtest nach GER, da Grammatik,
-        Hören, Lesen, Schreiben und Sprechen nicht vollständig bewertet werden.
+        Die Einstufung nutzt einen CEFR-abgeglichenen Referenzwortschatz mit {formatNumber(summary.referenceCount)} Einträgen. Die Stufen sind
+        eine Lernorientierung und keine offizielle GER-Wortliste. Grammatik, Hören, Lesen, Schreiben und Sprechen werden nicht vollständig bewertet.
       </p>
 
       <div className="progress-metrics">
@@ -217,9 +212,14 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
                   {selectedLevel === levelProgress.level ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </button>
 
-                <button className="level-add-button" type="button" onClick={() => addMissingLevelEntries(levelProgress.level)}>
-                  <BookPlus size={16} />
-                  <span>Fehlende hinzufügen</span>
+                <button
+                  className="level-add-button"
+                  type="button"
+                  onClick={() => showMissingLevelEntries(levelProgress.level)}
+                  disabled={levelProgress.missingCount === 0}
+                >
+                  <ListFilter size={16} />
+                  <span>{levelProgress.missingCount ? "Fehlende anzeigen" : "Alle gespeichert"}</span>
                 </button>
               </article>
             ))}
@@ -232,7 +232,7 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
                   <span className="eyebrow">{selectedLanguageLabel}</span>
                   <h3>{selectedLevel}-Wortschatz</h3>
                 </div>
-                <span>{filteredReferenceEntries.length} Einträge</span>
+                <span>{formatNumber(filteredReferenceEntries.length)} Einträge</span>
               </div>
 
               <div className="reference-filters">
@@ -289,6 +289,8 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
                 </label>
               </div>
 
+              {saveError && <p className="error-text reference-save-error">{saveError}</p>}
+
               <div className="reference-list">
                 {!filteredReferenceEntries.length && (
                   <div className="empty-state compact">
@@ -296,7 +298,7 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
                   </div>
                 )}
 
-                {filteredReferenceEntries.map((entry) => {
+                {visibleReferenceEntries.map((entry) => {
                   const status = getReferenceStatus(entry, userLemmas);
                   const saving = savingIds.has(entry.id);
 
@@ -304,7 +306,9 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
                     <article className={`reference-row ${status}`} key={entry.id}>
                       <div className="reference-word">
                         <strong>{entry.lemma}</strong>
-                        <span>{entry.translation}</span>
+                        <span>
+                          {entry.translationSource === "curated" ? entry.translation : "KI-Prüfung beim Hinzufügen"}
+                        </span>
                       </div>
 
                       <div className="reference-info">
@@ -338,6 +342,16 @@ export function ProgressDashboard({ entries, settings, onSave }: ProgressDashboa
                     </article>
                   );
                 })}
+
+                {visibleReferenceEntries.length < filteredReferenceEntries.length && (
+                  <button
+                    className="reference-more-button"
+                    type="button"
+                    onClick={() => setVisibleCount((current) => current + referencePageSize)}
+                  >
+                    Weitere {Math.min(referencePageSize, filteredReferenceEntries.length - visibleReferenceEntries.length)} anzeigen
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -351,9 +365,13 @@ function Metric({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="progress-metric">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong>{typeof value === "number" ? formatNumber(value) : value}</strong>
     </div>
   );
+}
+
+function formatNumber(value: number) {
+  return value.toLocaleString("de-DE");
 }
 
 function getUserLemmaMap(entries: VocabularyEntry[], language: StudyLanguageCode, settings: ReviewSettings) {

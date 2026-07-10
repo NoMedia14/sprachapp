@@ -1,4 +1,4 @@
-import { Check, Eye, RotateCcw, Zap } from "lucide-react";
+import { ArrowRight, Check, Eye, RotateCcw, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { applyReviewGrade, isDue } from "../services/spacedRepetition";
 import type { LanguageCode, ReviewGrade, ReviewSettings, VocabularyEntry, VocabularyFilters } from "../types";
@@ -155,22 +155,46 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
             <span className="eyebrow">
               {languageLabel[activeEntry.sourceLanguage]} → {languageLabel[activeEntry.targetLanguage]}
             </span>
-            <h2>{activeEntry.term}</h2>
+
+            <div className={`review-word-grid ${revealed ? "revealed" : ""}`}>
+              <div className="review-word-side source">
+                <span>{languageLabel[activeEntry.sourceLanguage]}</span>
+                <strong>{activeEntry.term}</strong>
+              </div>
+
+              <ArrowRight className="review-direction-icon" aria-hidden="true" size={22} />
+
+              <div className={`review-word-side target ${revealed ? "" : "concealed"}`}>
+                <span>{languageLabel[activeEntry.targetLanguage]}</span>
+                {revealed ? (
+                  <strong>{activeEntry.translation}</strong>
+                ) : (
+                  <button className="reveal-button" type="button" onClick={() => setRevealed(true)}>
+                    <Eye size={18} />
+                    Antwort zeigen
+                  </button>
+                )}
+              </div>
+            </div>
 
             {revealed ? (
-              <div className="answer-area">
-                <p className="translation-line">{activeEntry.translation}</p>
-                <p>
-                  <HighlightedExample sentence={activeEntry.exampleSource} term={activeEntry.term} />
-                </p>
-                {activeEntry.exampleTarget && <p className="muted-text">{activeEntry.exampleTarget}</p>}
+              <div className="review-examples">
+                <div className="review-example source">
+                  <span>Beispiel · {languageLabel[activeEntry.sourceLanguage]}</span>
+                  <p>
+                    <HighlightedExample sentence={activeEntry.exampleSource} term={activeEntry.term} />
+                  </p>
+                </div>
+                {activeEntry.exampleTarget && (
+                  <div className="review-example target">
+                    <span>Beispiel · {languageLabel[activeEntry.targetLanguage]}</span>
+                    <p>
+                      <HighlightedExample sentence={activeEntry.exampleTarget} term={activeEntry.translation} />
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <button className="reveal-button" type="button" onClick={() => setRevealed(true)}>
-                <Eye size={18} />
-                Antwort zeigen
-              </button>
-            )}
+            ) : null}
           </div>
 
           {revealed && (
