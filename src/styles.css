@@ -1444,17 +1444,25 @@ mark {
 
 @media (max-width: 860px) {
   .app-shell {
-    grid-template-columns: 82px minmax(0, 1fr);
+    display: block;
   }
 
   .sidebar {
-    gap: 14px;
-    min-height: 100vh;
-    padding: 14px 10px;
+    align-items: center;
+    box-shadow: 0 3px 12px rgb(20 29 29 / 20%);
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    min-height: 0;
+    padding: 8px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
 
   nav {
-    grid-template-columns: 1fr;
+    gap: 4px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .brand {
@@ -1462,18 +1470,16 @@ mark {
   }
 
   .brand div,
-  nav button:not(.active) .badge,
   .nav-label,
   .account-box span,
   .account-box button span,
-  .cost-widget:not(.collapsed),
-  .cost-widget.collapsed {
+  .cost-widget {
     display: none;
   }
 
   nav button {
     justify-content: center;
-    min-height: 46px;
+    min-height: 42px;
     padding: 0;
   }
 
@@ -1487,14 +1493,15 @@ mark {
     min-width: 18px;
     padding: 2px 5px;
     position: absolute;
-    right: 6px;
-    top: 6px;
+    right: 0;
+    top: 1px;
   }
 
   .account-box {
-    justify-items: center;
-    margin-top: auto;
-    padding-top: 12px;
+    border: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
   }
 
   .account-box button {
@@ -1505,7 +1512,7 @@ mark {
 
   .content {
     min-width: 0;
-    padding: 22px 14px;
+    padding: 18px 14px;
   }
 
   .content-header {
@@ -1565,13 +1572,17 @@ mark {
   .grade-grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .review-panel[data-review-mode="due"] .filter-bar.compact {
+    grid-template-columns: minmax(0, 220px);
+  }
+
+  .review-panel[data-review-mode="due"] .filter-bar.compact label:not(:first-child) {
+    display: none;
+  }
 }
 
 @media (max-width: 520px) {
-  nav {
-    grid-template-columns: 1fr;
-  }
-
   .grade-grid {
     grid-template-columns: 1fr;
   }
@@ -1590,22 +1601,49 @@ mark {
     flex-direction: column;
   }
 
-  .review-word-grid,
+  .review-topline {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .flashcard {
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .review-word-grid {
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr);
+  }
+
   .review-examples {
     grid-template-columns: 1fr;
   }
 
   .review-direction-icon {
-    transform: rotate(90deg);
+    height: 26px;
+    padding: 4px;
+    width: 26px;
   }
 
   .review-word-side {
-    min-height: 112px;
-    padding: 16px;
+    gap: 8px;
+    min-height: 96px;
+    padding: 12px 8px;
   }
 
   .review-word-side strong {
-    font-size: 28px;
+    font-size: 23px;
+  }
+
+  .reveal-button {
+    min-height: 42px;
+    padding: 0;
+    width: 42px;
+  }
+
+  .reveal-label {
+    display: none;
   }
 }
 

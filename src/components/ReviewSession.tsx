@@ -87,7 +87,7 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
   };
 
   return (
-    <section className="review-panel">
+    <section className="review-panel" data-review-mode={mode}>
       <div className="review-controls">
         <div className="segmented review-mode-toggle">
           <button type="button" className={mode === "due" ? "active" : ""} onClick={() => setMode("due")}>
@@ -171,7 +171,7 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
                 ) : (
                   <button className="reveal-button" type="button" onClick={() => setRevealed(true)}>
                     <Eye size={18} />
-                    Antwort zeigen
+                    <span className="reveal-label">Antwort zeigen</span>
                   </button>
                 )}
               </div>

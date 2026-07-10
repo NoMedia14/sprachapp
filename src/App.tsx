@@ -200,6 +200,7 @@ export default function App() {
               key={itemView}
               type="button"
               aria-label={label}
+              title={label}
               className={view === itemView ? "active" : ""}
               onClick={() => setView(itemView)}
             >
