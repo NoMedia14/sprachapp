@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Eye, RotateCcw, Zap } from "lucide-react";
+import { ArrowRight, Check, Eye, RotateCcw, SlidersHorizontal, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { formatCategoryLabel } from "../lib/categoryLabels";
 import { applyReviewGrade, isDue } from "../services/spacedRepetition";
@@ -41,6 +41,7 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
   const [revealed, setRevealed] = useState(false);
   const [mode, setMode] = useState<ReviewMode>("due");
   const [filters, setFilters] = useState<VocabularyFilters>(defaultFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const categories = useMemo(() => uniqueValues(entries.map((entry) => entry.category)), [entries]);
   const subcategories = useMemo(
     () =>
@@ -90,16 +91,29 @@ export function ReviewSession({ entries, settings, onReview }: ReviewSessionProp
   return (
     <section className="review-panel" data-review-mode={mode}>
       <div className="review-controls">
-        <div className="segmented review-mode-toggle">
-          <button type="button" className={mode === "due" ? "active" : ""} onClick={() => setMode("due")}>
-            Fällig
-          </button>
-          <button type="button" className={mode === "targeted" ? "active" : ""} onClick={() => setMode("targeted")}>
-            Gezielt
+        <div className="review-mode-row">
+          <div className="segmented review-mode-toggle">
+            <button type="button" className={mode === "due" ? "active" : ""} onClick={() => setMode("due")}>
+              Fällig
+            </button>
+            <button type="button" className={mode === "targeted" ? "active" : ""} onClick={() => setMode("targeted")}>
+              Gezielt
+            </button>
+          </div>
+
+          <button
+            className="review-filter-toggle"
+            type="button"
+            onClick={() => setFiltersOpen((current) => !current)}
+            aria-label={filtersOpen ? "Filter schließen" : "Filter öffnen"}
+            aria-expanded={filtersOpen}
+            title={filtersOpen ? "Filter schließen" : "Filter öffnen"}
+          >
+            <SlidersHorizontal size={18} />
           </button>
         </div>
 
-        <div className="filter-bar compact">
+        <div className={`filter-bar compact review-filters ${filtersOpen ? "open" : ""}`}>
           <label>
             <span>Sprache</span>
             <select value={filters.language} onChange={(event) => updateFilter("language", event.target.value as VocabularyFilters["language"])}>

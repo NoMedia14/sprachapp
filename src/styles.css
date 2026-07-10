@@ -328,30 +328,6 @@ nav button:hover {
   padding: 8px 12px;
 }
 
-.content-review .content-header {
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.content-review .content-header .eyebrow {
-  display: none;
-}
-
-.content-review .content-header h1 {
-  font-size: 32px;
-  margin: 0;
-}
-
-.content-review .stats-strip {
-  gap: 6px;
-}
-
-.content-review .stats-strip span {
-  font-size: 11px;
-  padding: 6px 9px;
-}
-
 .lookup-card {
   background: #ffffff;
   border: 1px solid #e3ded6;
@@ -837,9 +813,27 @@ mark {
   margin-bottom: 18px;
 }
 
+.review-mode-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
 .review-mode-toggle {
   margin-top: 0;
   max-width: 260px;
+}
+
+.review-filter-toggle {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d9d5ce;
+  border-radius: 8px;
+  color: #394541;
+  display: none;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
 }
 
 .word-main {
@@ -1642,24 +1636,6 @@ mark {
     padding-top: 8px;
   }
 
-  .content-review .content-header {
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-
-  .content-review .content-header h1 {
-    font-size: 22px;
-  }
-
-  .content-review .stats-strip {
-    gap: 3px;
-  }
-
-  .content-review .stats-strip span {
-    font-size: 10px;
-    padding: 4px 6px;
-  }
-
   .grade-grid {
     grid-template-columns: 1fr;
   }
@@ -1688,6 +1664,27 @@ mark {
 
   .content-review .review-mode-toggle button {
     min-height: 34px;
+  }
+
+  .content-review .review-mode-row {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) 34px;
+  }
+
+  .content-review .review-filter-toggle {
+    display: inline-flex;
+    height: 34px;
+    width: 34px;
+  }
+
+  .content-review .review-filters {
+    display: none;
+  }
+
+  .content-review .review-filters.open {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .content-review .filter-bar.compact label {

@@ -226,17 +226,6 @@ export default function App() {
       </aside>
 
       <section className={`content content-${view}`}>
-        <header className="content-header">
-          <div>
-            <span className="eyebrow">Vokabeltraining</span>
-            <h1>{navItems.find((item) => item.view === view)?.label}</h1>
-          </div>
-          <div className="stats-strip">
-            <span>{entries.length} Wörter</span>
-            <span>{dueCount} fällig</span>
-          </div>
-        </header>
-
         {view === "lookup" && <WordLookup onSave={saveTranslation} onTranslated={refreshUsage} />}
         {view === "review" && <ReviewSession entries={entries} settings={settings} onReview={reviewEntry} />}
         {view === "words" && <SavedWords entries={entries} onDelete={deleteEntry} />}
