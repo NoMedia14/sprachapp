@@ -1614,6 +1614,28 @@ mark {
 }
 
 @media (max-width: 520px) {
+  .content-review {
+    padding-top: 8px;
+  }
+
+  .content-review .content-header {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .content-review .content-header h1 {
+    font-size: 22px;
+  }
+
+  .content-review .stats-strip {
+    gap: 3px;
+  }
+
+  .content-review .stats-strip span {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+
   .grade-grid {
     grid-template-columns: 1fr;
   }
@@ -1627,8 +1649,33 @@ mark {
     padding: 18px;
   }
 
-  .review-panel {
-    padding: 14px;
+  .content-review .review-panel {
+    padding: 10px;
+  }
+
+  .content-review .review-controls {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .content-review .review-mode-toggle {
+    max-width: none;
+  }
+
+  .content-review .review-mode-toggle button {
+    min-height: 34px;
+  }
+
+  .content-review .filter-bar.compact label {
+    gap: 4px;
+  }
+
+  .content-review .filter-bar.compact label > span {
+    font-size: 10px;
+  }
+
+  .content-review .filter-bar.compact select {
+    min-height: 34px;
   }
 
   .result-heading.compact {
@@ -1636,9 +1683,14 @@ mark {
     flex-direction: column;
   }
 
-  .review-topline {
+  .content-review .review-topline {
     font-size: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
+  }
+
+  .content-review .flashcard {
+    gap: 8px;
+    min-height: 0;
   }
 
   .flashcard {

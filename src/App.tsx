@@ -225,7 +225,7 @@ export default function App() {
         )}
       </aside>
 
-      <section className="content">
+      <section className={`content content-${view}`}>
         <header className="content-header">
           <div>
             <span className="eyebrow">Vokabeltraining</span>
