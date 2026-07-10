@@ -1,8 +1,9 @@
 import type { User } from "@supabase/supabase-js";
-import { BookMarked, Library, LogOut, RotateCcw, Settings, Sparkles } from "lucide-react";
+import { BarChart3, BookMarked, Library, LogOut, RotateCcw, Settings, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthPanel } from "./components/AuthPanel";
 import { CostWidget } from "./components/CostWidget";
+import { ProgressDashboard } from "./components/ProgressDashboard";
 import { ReviewSession } from "./components/ReviewSession";
 import { SavedWords } from "./components/SavedWords";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -19,7 +20,7 @@ import {
 } from "./services/vocabularyRepository";
 import type { ReviewSettings, TranslationResult, VocabularyEntry } from "./types";
 
-type View = "lookup" | "review" | "words" | "settings";
+type View = "lookup" | "review" | "words" | "progress" | "settings";
 
 const costWidgetStorageKey = "sprachapp:cost-widget-hidden";
 
@@ -27,6 +28,7 @@ const navItems: Array<{ view: View; label: string; icon: typeof Sparkles }> = [
   { view: "lookup", label: "Nachschlagen", icon: Sparkles },
   { view: "review", label: "Wiederholung", icon: RotateCcw },
   { view: "words", label: "Wörter", icon: Library },
+  { view: "progress", label: "Fortschritt", icon: BarChart3 },
   { view: "settings", label: "Einstellungen", icon: Settings },
 ];
 
@@ -110,7 +112,8 @@ export default function App() {
     const existing = entries.find(
       (entry) =>
         entry.term.toLowerCase() === result.term.toLowerCase() &&
-        entry.sourceLanguage === result.sourceLanguage,
+        entry.sourceLanguage === result.sourceLanguage &&
+        entry.targetLanguage === result.targetLanguage,
     );
 
     const entry: VocabularyEntry = {
@@ -210,6 +213,7 @@ export default function App() {
         {view === "lookup" && <WordLookup onSave={saveTranslation} onTranslated={refreshUsage} />}
         {view === "review" && <ReviewSession entries={entries} settings={settings} onReview={reviewEntry} />}
         {view === "words" && <SavedWords entries={entries} onDelete={deleteEntry} />}
+        {view === "progress" && <ProgressDashboard entries={entries} settings={settings} onSave={saveTranslation} />}
         {view === "settings" && <SettingsPanel settings={settings} onChange={saveSettings} />}
       </section>
     </main>

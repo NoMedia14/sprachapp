@@ -35,6 +35,13 @@ export function isDue(entry: VocabularyEntry, now = new Date()) {
   return new Date(entry.dueAt).getTime() <= now.getTime();
 }
 
+export function isMasteredByExistingSrs(entry: VocabularyEntry, settings: ReviewSettings = defaultReviewSettings) {
+  const intervals = settings.reviewIntervalsDays.length ? settings.reviewIntervalsDays : defaultReviewSettings.reviewIntervalsDays;
+  const masteredInterval = intervals[intervals.length - 1] ?? 60;
+
+  return entry.repetitions >= intervals.length && entry.intervalDays >= masteredInterval;
+}
+
 export function applyReviewGrade(
   entry: VocabularyEntry,
   grade: ReviewGrade,
